@@ -104,12 +104,12 @@ func NewLaunchpadRepository(project launchpad.Project, lpGroup string) (*Reposit
 	repo := &Repository{
 		Name:          project.Name,
 		DefaultBranch: "",
-		NewCommits:    launchpad.CalculateNewCommits(project.Name),
+		NewCommits:    launchpad.GetNewCommits(project.Name),
 		Url:           fmt.Sprintf("https://git.launchpad.net/%s", project.Name),
 		Releases:      []Release{},
 	}
 
-	page, err := launchpad.FetchWebDocument(repo.Url)
+	page, err := launchpad.ParseWebpage(repo.Url)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch launchpad repo page %s/%s: %v", lpGroup, repo.Name, err)
 	}

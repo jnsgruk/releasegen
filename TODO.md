@@ -1,4 +1,3 @@
-- Launchpad support
 - Refactor/consider overall structure from `root.go` onwards
 - Tests!
 - Reconsider output format

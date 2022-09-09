@@ -1,6 +1,13 @@
 package launchpad
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"time"
+)
 
 // Project represents a Launchpad Project
 type Project struct {
@@ -75,4 +82,37 @@ type ProjectGroupProjectsResponse struct {
 	TotalSize        int       `json:"total_size"`
 	Entries          []Project `json:"entries"`
 	ResourceTypeLink string    `json:"resource_type_link"`
+}
+
+// EnumerateProjectGroup lists the projects that are part of the specified project group
+func EnumerateProjectGroup(name string) ([]Project, error) {
+	url := fmt.Sprintf("https://api.staging.launchpad.net/devel/%s/projects", name)
+	log.Printf("processing launchpad project group: %s", url)
+
+	// TODO: Add a retry here?
+	client := http.Client{Timeout: time.Second * 5}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, getErr := client.Do(req)
+	if getErr != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		return nil, err
+	}
+
+	pg := ProjectGroupProjectsResponse{}
+	jsonErr := json.Unmarshal(body, &pg)
+	if jsonErr != nil {
+		return nil, err
+	}
+
+	return pg.Entries, nil
 }

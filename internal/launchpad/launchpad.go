@@ -1,63 +1,14 @@
 package launchpad
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/net/html"
 )
-
-// EnumerateProjectGroup lists the projects that are part of the specified project group
-func EnumerateProjectGroup(name string) ([]Project, error) {
-	url := fmt.Sprintf("https://api.staging.launchpad.net/devel/%s/projects", name)
-	log.Printf("processing launchpad project group: %s", url)
-
-	// TODO: Add a retry here?
-	client := http.Client{
-		Timeout: time.Second * 10, // Timeout after 5 seconds
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, getErr := client.Do(req)
-	if getErr != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		return nil, err
-	}
-
-	pg := ProjectGroupProjectsResponse{}
-	jsonErr := json.Unmarshal(body, &pg)
-	if jsonErr != nil {
-		return nil, err
-	}
-
-	return pg.Entries, nil
-}
-
-// GetDefaultBranch parses a repository's default git branch from its cgit page
-func GetDefaultBranch(page *goquery.Document) (branch string) {
-	// Find an option element with the selected attribute.
-	// Launchpad Git pages only contain one option element for selecting branch, the selected
-	// branch at page load time is the default branch
-	page.Find("option[selected=selected]").Each(func(i int, s *goquery.Selection) {
-		branch = s.Text()
-	})
-	return branch
-}
 
 type Tag struct {
 	Name      string
@@ -70,53 +21,57 @@ type Commit struct {
 	Timestamp *time.Time
 }
 
-func GetTags(project string, page *goquery.Document) []*Tag {
-	tags := []*Tag{}
-	// TODO(jnsgruk): Reduce some iteration here - find by Text perhaps?
-	page.Find("tr.nohover").Each(func(i int, s *goquery.Selection) {
-		// Find the header for the tags table
-		if s.Text() == "TagDownloadAuthorAge" {
-			s.NextUntil("tr.nohover").EachWithBreak(func(i int, t *goquery.Selection) bool {
-				// Only get the first three tags
-				if i > 2 {
-					return false
-				}
-				// Find all the 'a' tags on the row
-				hrefs := t.Find("a")
+func GetTags(project string, page *goquery.Document) (tags []*Tag) {
+	// Get the row in the table that represents the header before the tags are listed
+	tagRowHeader := page.Find("tr.nohover").FilterFunction(func(_ int, s *goquery.Selection) bool {
+		return s.Text() == "TagDownloadAuthorAge"
+	})
 
-				for i := 0; i < hrefs.Length(); i += 2 {
-					// The first link is in the first column. Get the tag name from the URL
-					tagHref := hrefs.Get(i)
-					tagName := strings.Split(getNodeAttr("href", tagHref), "=")[1]
-
-					if strings.HasPrefix(tagName, "rev") {
-						t, err := ParseCommitPage(project, tagName)
-						if err != nil {
-							return false
-						}
-
-						// We only consider tags with the name 'rev...'
-						tags = append(tags, &Tag{
-							Name:      tagName,
-							Commit:    t.Commit,
-							Timestamp: t.Timestamp,
-						})
-					}
-				}
-				return true
-			})
+	tagRowHeader.NextUntil("tr.nohover").EachWithBreak(func(_ int, row *goquery.Selection) bool {
+		// Only get the first three tags
+		if len(tags) >= 3 {
+			return false
 		}
+
+		// Iterate over the links, each one is either a link to a tag or a commit
+		row.Find("a").Each(func(i int, l *goquery.Selection) {
+			// Skip odd numbers, as these are links to commits
+			if i%2 != 0 {
+				return
+			}
+
+			// Grab the tag name from the only query parameter in the url
+			href := l.AttrOr("href", "")
+			tagName := strings.Split(href, "=")[1]
+
+			// We only consider tags with the name 'rev...' so bail if this isn't one
+			if !strings.HasPrefix(tagName, "rev") {
+				return
+			}
+
+			commit, err := GetCommit(project, tagName)
+			if err != nil {
+				return
+			}
+
+			tags = append(tags, &Tag{
+				Name:      tagName,
+				Commit:    commit.Commit,
+				Timestamp: commit.Timestamp,
+			})
+		})
+		return true
 	})
 	return tags
 }
 
-func ParseCommitPage(repo string, tag string) (*Commit, error) {
+func GetCommit(repo string, tag string) (*Commit, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/commit", repo)
 	if tag != "" {
 		url = fmt.Sprintf("%s/?h=%s", url, tag)
 	}
 
-	doc, err := FetchWebDocument(url)
+	doc, err := ParseWebpage(url)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch tag page %s: %v", url, err)
 	}
@@ -136,10 +91,23 @@ func ParseCommitPage(repo string, tag string) (*Commit, error) {
 	}, nil
 }
 
-func CalculateNewCommits(repo string) int {
+// GetDefaultBranch parses a repository's default git branch from its cgit page
+func GetDefaultBranch(page *goquery.Document) (branch string) {
+	// Find an option element with the selected attribute.
+	// Launchpad Git pages only contain one option element for selecting branch, the selected
+	// branch at page load time is the default branch
+	page.Find("option[selected=selected]").Each(func(i int, s *goquery.Selection) {
+		branch = s.Text()
+	})
+	return branch
+}
+
+// GetNewCommits parses the git log page for a Launchpad project and returns the number of
+// commits that have happened on the default branch since the last tag
+func GetNewCommits(repo string) int {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/log", repo)
 
-	doc, err := FetchWebDocument(url)
+	doc, err := ParseWebpage(url)
 	if err != nil {
 		return -1
 	}
@@ -157,17 +125,8 @@ func CalculateNewCommits(repo string) int {
 	}
 }
 
-func getNodeAttr(attr string, node *html.Node) string {
-	for _, a := range node.Attr {
-		if a.Key == attr {
-			return a.Val
-		}
-	}
-	return ""
-}
-
-// FetchWebDocument fetches a URL and returns a goquery.Document for scraping
-func FetchWebDocument(url string) (*goquery.Document, error) {
+// ParseWebpage fetches a URL and returns a goquery.Document for scraping
+func ParseWebpage(url string) (*goquery.Document, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
