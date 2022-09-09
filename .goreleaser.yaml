@@ -1,0 +1,38 @@
+project_name: releasegen
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - mod_timestamp: "{{ .CommitTimestamp }}"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .CommitDate }}
+archives:
+  - replacements:
+      amd64: x86_64
+
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+release:
+  prerelease: auto
+  # Defaults to empty.
+  footer: |
+    ## Thanks!
+
+    That's all the changes for {{ .Tag }}!
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

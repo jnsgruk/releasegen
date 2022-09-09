@@ -1,0 +1,7 @@
+- Launchpad support
+- Refactor/consider overall structure from `root.go` onwards
+- Tests!
+- Reconsider output format
+  - `body_html` -> `body`
+  - `href` -> `release_url`
+  - `compare_href` -> `compare_url`
