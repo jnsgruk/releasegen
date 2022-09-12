@@ -53,7 +53,9 @@ func NewTeam(configTeam config.Team) *Team {
 // populateLaunchpadRepos creates a slice of Repo types representing the repos owned by
 // the specified Launchpad project groups
 func (t *Team) populateLaunchpadRepos(lpGroup string, ignores []string) error {
-	projects, err := launchpad.EnumerateProjectGroup(lpGroup)
+	pg := launchpad.ProjectGroup{Name: lpGroup}
+
+	projects, err := pg.Projects()
 	if err != nil {
 		return err
 	}
@@ -96,7 +98,7 @@ func (t *Team) populateLaunchpadRepos(lpGroup string, ignores []string) error {
 // populateGithubRepos creates a slice of Repo types representing the repos owned by the specified
 // teams in the Github org
 func (t *Team) populateGithubRepos(ghOrg config.GithubOrg) error {
-	client := getGithubClient()
+	client := githubClient()
 	// repos := []Repo{}
 	ctx := context.Background()
 	// Iterate over the Github Teams, listing repos for each
@@ -135,7 +137,7 @@ func (t *Team) populateGithubRepos(ghOrg config.GithubOrg) error {
 				// TODO: Investigate if this read/append is thread safe
 				// We couldn't find the repo, so go ahead and add it
 				if index < 0 {
-					repo, err := NewGithubRepository(r, ghOrg, ghTeam)
+					repo, err := NewGithubRepository(r, ghTeam, ghOrg)
 					if err == nil {
 						t.Repos = append(t.Repos, *repo)
 					}

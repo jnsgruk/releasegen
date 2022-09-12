@@ -19,123 +19,92 @@ type Repository struct {
 }
 
 // NewGithubRepository fetches and parses release information for a single Github repository
-func NewGithubRepository(ghRepo *github.Repository, ghOrg config.GithubOrg, ghTeam string) (*Repository, error) {
-	client := getGithubClient()
+func NewGithubRepository(repo *github.Repository, team string, org config.GithubOrg) (*Repository, error) {
+	client := githubClient()
 	ctx := context.Background()
+	opts := &github.ListOptions{PerPage: 3}
 
 	// Create a repository to represent the Github Repo
-	repo := &Repository{
-		Name:          *ghRepo.Name,
-		DefaultBranch: *ghRepo.DefaultBranch,
+	r := &Repository{
+		Name:          *repo.Name,
+		DefaultBranch: *repo.DefaultBranch,
 		NewCommits:    0,
-		Url:           *ghRepo.HTMLURL,
+		Url:           *repo.HTMLURL,
 		Releases:      []Release{},
 	}
 
-	releases, err := fetchGithubReleases(*ghRepo.Name, ghOrg.Name, ghTeam)
+	releases, _, err := client.Repositories.ListReleases(ctx, org.Name, r.Name, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error listing releases for repo: %s/%s/%s: %v", org.Name, team, r.Name, err)
+	} else if len(releases) == 0 {
+		return nil, nil
 	}
 
 	// Iterate over the releases in the Github repo
-	for _, r := range releases {
-		repo.Releases = append(repo.Releases, NewRelease(
-			r.GetID(),
-			r.GetTagName(),
-			r.CreatedAt.Time,
-			r.GetName(),
-			r.GetBody(),
-			r.GetHTMLURL(),
-			fmt.Sprintf("%s/compare/%s...%s", repo.Url, r.GetTagName(), repo.DefaultBranch),
+	for _, rel := range releases {
+		r.Releases = append(r.Releases, NewRelease(
+			rel.GetID(),
+			rel.GetTagName(),
+			rel.CreatedAt.Time,
+			rel.GetName(),
+			rel.GetBody(),
+			rel.GetHTMLURL(),
+			fmt.Sprintf("%s/compare/%s...%s", r.Url, rel.GetTagName(), r.DefaultBranch),
 		))
 	}
 
 	// Add the commit delta between last release and default branch
-	comparison, _, err := client.Repositories.CompareCommits(
-		ctx,
-		ghOrg.Name,
-		repo.Name,
-		repo.Releases[0].Version,
-		repo.DefaultBranch,
-		&github.ListOptions{},
-	)
-
+	comparison, _, err := client.Repositories.CompareCommits(ctx, org.Name, r.Name, r.Releases[0].Version, r.DefaultBranch, opts)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"error getting commit comparison for release %s in %s/%s/%s",
-			repo.Releases[0].Version, ghOrg.Name, ghTeam, repo.Name,
-		)
+		return nil, fmt.Errorf("error getting commit comparison for release %s in %s/%s/%s", r.Releases[0].Version, org.Name, team, r.Name)
 	}
 
-	repo.NewCommits = *comparison.TotalCommits
-
-	return repo, nil
-}
-
-// fetchGithubReleases fetches a list of releases for a given repo, in a given team, in a given org
-func fetchGithubReleases(repo string, org string, team string) ([]*github.RepositoryRelease, error) {
-	client := getGithubClient()
-	ctx := context.Background()
-	listOpts := &github.ListOptions{PerPage: 3}
-
-	// Grab the releases for the Github Repo
-	releases, _, err := client.Repositories.ListReleases(ctx, org, repo, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"error listing releases for repo: %s/%s/%s: %v", org, team, repo, err,
-		)
-	}
-
-	// If there are no releases, don't include the repo
-	if len(releases) == 0 {
-		return nil, fmt.Errorf("no releases for repo: %s/%s/%s", org, team, repo)
-	}
-	return releases, nil
+	r.NewCommits = *comparison.TotalCommits
+	return r, nil
 }
 
 // NewLaunchpadRepository fetches and parses release information for a single Launchpad project
 func NewLaunchpadRepository(project launchpad.Project, lpGroup string) (*Repository, error) {
 	if project.Vcs != "Git" {
-		// log.Debugf("launchpad project %s has no git repository", project.Name)
 		return nil, nil
 	}
 
 	// Create a repository to represent the Launchpad project
-	repo := &Repository{
+	r := &Repository{
 		Name:          project.Name,
 		DefaultBranch: "",
-		NewCommits:    launchpad.GetNewCommits(project.Name),
+		NewCommits:    project.NewCommits(),
 		Url:           fmt.Sprintf("https://git.launchpad.net/%s", project.Name),
 		Releases:      []Release{},
 	}
 
-	page, err := launchpad.ParseWebpage(repo.Url)
+	defaultBranch, err := project.DefaultBranch()
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch launchpad repo page %s/%s: %v", lpGroup, repo.Name, err)
+		return nil, err
+	}
+	r.DefaultBranch = defaultBranch
+
+	tags, err := project.Tags()
+	if err != nil {
+		return nil, err
 	}
 
-	repo.DefaultBranch = launchpad.GetDefaultBranch(page)
-	if repo.DefaultBranch == "" {
-		return nil, fmt.Errorf("could not parse default branch for: %s/%s", lpGroup, repo.Name)
-	}
-
-	tags := launchpad.GetTags(project.Name, page)
 	if len(tags) == 0 {
 		return nil, nil
 	}
 
 	//Iterate over the tags in the launchpad repo
 	for _, t := range tags {
-		repo.Releases = append(repo.Releases, NewRelease(
+		r.Releases = append(r.Releases, NewRelease(
 			t.Timestamp.Unix(),
 			t.Name,
 			*t.Timestamp,
 			t.Name,
 			"",
-			fmt.Sprintf("%s/tag/?h=%s", repo.Url, t.Name),
-			fmt.Sprintf("%s/diff/?id=%s&id2=%s", repo.Url, t.Commit, repo.DefaultBranch),
+			fmt.Sprintf("%s/tag/?h=%s", r.Url, t.Name),
+			fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Url, t.Commit, r.DefaultBranch),
 		))
 	}
 
-	return repo, nil
+	return r, nil
 }

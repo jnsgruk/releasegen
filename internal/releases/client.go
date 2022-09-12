@@ -11,7 +11,7 @@ import (
 
 var ghClient *github.Client
 
-func getGithubClient() *github.Client {
+func githubClient() *github.Client {
 	if ghClient == nil {
 		log.Println("creating new Github client")
 		ctx := context.Background()
