@@ -22,7 +22,7 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("unable to decode into config struct, %v\n", err)
 		}
 
-		teams := releases.NewReleaseReport(conf)
+		teams := releases.GenerateReport(conf)
 		teams.Dump()
 	},
 }

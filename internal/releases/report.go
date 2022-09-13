@@ -12,19 +12,24 @@ import (
 
 type ReleaseReport []*Team
 
-// NewReleaseReport takes a given config, and generates the output JSON
-func NewReleaseReport(conf *config.Config) ReleaseReport {
+// GenerateReport takes a given config, and generates the output JSON
+func GenerateReport(conf *config.Config) ReleaseReport {
 	teams := ReleaseReport{}
 	var wg sync.WaitGroup
 
 	// Iterate over the teams specified in the config file
 	for _, t := range conf.Teams {
-		wg.Add(1)
+		team := NewTeam(*t)
+		teams = append(teams, team)
 
-		go func(t *config.Team) {
+		wg.Add(1)
+		go func() {
 			defer wg.Done()
-			teams = append(teams, NewTeam(*t))
-		}(t)
+			err := team.Process()
+			if err != nil {
+				log.Printf("error processing team: %v", err)
+			}
+		}()
 	}
 	wg.Wait()
 

@@ -15,39 +15,51 @@ import (
 
 // Team represents a given "real-life Team"
 type Team struct {
-	Name  string       `json:"team"`
-	Repos []Repository `json:"repos"`
+	Name   string       `json:"team"`
+	Repos  []Repository `json:"repos"`
+	config config.Team
 }
 
 // NewTeam creates a new team, and populates it's fields using the Github/Launchpad APIs
 func NewTeam(configTeam config.Team) *Team {
-	log.Printf("processing team: %s", configTeam.Name)
 	// Create a template team
-	team := &Team{Name: configTeam.Name, Repos: []Repository{}}
+	team := &Team{
+		Name:   configTeam.Name,
+		config: configTeam,
+	}
+	return team
+}
+
+func (t *Team) Process() error {
+	log.Printf("processing team: %s", t.config.Name)
 
 	// Iterate over the Github orgs for a given team
-	for _, ghOrg := range configTeam.Github {
+	for _, ghOrg := range t.config.Github {
 		log.Printf("processing org: %s\n", ghOrg.Name)
 
-		err := team.populateGithubRepos(ghOrg)
+		err := t.populateGithubRepos(ghOrg)
 		if err != nil {
-			log.Printf("%v", err)
+			return fmt.Errorf("error populating github repos: %w", err)
 		}
 	}
 
 	// Iterate over the Launchpad Project Groups for the team
-	for _, lpGroup := range configTeam.Launchpad.ProjectGroups {
-		err := team.populateLaunchpadRepos(lpGroup, configTeam.Launchpad.Ignores)
+	for _, lpGroup := range t.config.Launchpad.ProjectGroups {
+		err := t.populateLaunchpadRepos(lpGroup, t.config.Launchpad.Ignores)
 		if err != nil {
-			log.Printf("error populating launchpad repos: %v", err)
+			return fmt.Errorf("error populating launchpad repos: %w", err)
 		}
 	}
 
 	// Sort the repos by the last released
-	sort.Slice(team.Repos, func(i, j int) bool {
-		return team.Repos[i].Releases[0].Timestamp > team.Repos[j].Releases[0].Timestamp
+	sort.Slice(t.Repos, func(i, j int) bool {
+		if len(t.Repos[i].Releases) == 0 || len(t.Repos[j].Releases) == 0 {
+			return false
+		}
+		return t.Repos[i].Releases[0].Timestamp > t.Repos[j].Releases[0].Timestamp
 	})
-	return team
+
+	return nil
 }
 
 // populateLaunchpadRepos creates a slice of Repo types representing the repos owned by
@@ -138,7 +150,7 @@ func (t *Team) populateGithubRepos(ghOrg config.GithubOrg) error {
 				// We couldn't find the repo, so go ahead and add it
 				if index < 0 {
 					repo, err := NewGithubRepository(r, ghTeam, ghOrg)
-					if err == nil {
+					if err == nil && repo != nil {
 						t.Repos = append(t.Repos, *repo)
 					}
 				}
