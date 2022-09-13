@@ -167,25 +167,24 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 
 // GetNewCommits parses the git log page for a Launchpad project and returns the number of
 // commits that have happened on the default branch since the last tag
-func (p *Project) NewCommits() int {
+func (p *Project) NewCommits() (int, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/log", p.Name)
 
 	doc, err := parseWebpage(url)
 	if err != nil {
-		return -1
+		return -1, err
 	}
 
 	commitTable := doc.Find("table.list")
 	branchDecorationRow := commitTable.Find("a.branch-deco").First().Parent().Parent().Parent()
 	tagDecorationRow := commitTable.Find("a.tag-deco").First().Parent().Parent().Parent()
 
+	// If the decorations are on the same row, there are no commits between last tag and branch
 	if tagDecorationRow.Text() == branchDecorationRow.Text() {
-		// If the decorations are on the same row, there are no commits between last tag and branch
-		return 0
-	} else {
-		// Return the number of commits between the latest tag and the default branch
-		return branchDecorationRow.NextUntilSelection(tagDecorationRow).Length() + 1
+		return 0, nil
 	}
+	// Return the number of commits between the latest tag and the default branch
+	return branchDecorationRow.NextUntilSelection(tagDecorationRow).Length() + 1, nil
 }
 
 // tag returns information about a specified tag in a Launchpad project

@@ -10,7 +10,7 @@ import (
 	"github.com/jnsgruk/releasegen/internal/config"
 )
 
-type ReleaseReport []*Team
+type ReleaseReport []*TeamInfo
 
 // GenerateReport takes a given config, and generates the output JSON
 func GenerateReport(conf *config.Config) ReleaseReport {
@@ -20,7 +20,7 @@ func GenerateReport(conf *config.Config) ReleaseReport {
 	// Iterate over the teams specified in the config file
 	for _, t := range conf.Teams {
 		team := NewTeam(*t)
-		teams = append(teams, team)
+		teams = append(teams, team.Info())
 
 		wg.Add(1)
 		go func() {

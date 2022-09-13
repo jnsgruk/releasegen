@@ -13,10 +13,15 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// TeamInfo is the serialisable form of a real-life team
+type TeamInfo struct {
+	Name  string           `json:"team"`
+	Repos []RepositoryInfo `json:"repos"`
+}
+
 // Team represents a given "real-life Team"
 type Team struct {
-	Name   string       `json:"team"`
-	Repos  []Repository `json:"repos"`
+	info   TeamInfo
 	config config.Team
 }
 
@@ -24,39 +29,46 @@ type Team struct {
 func NewTeam(configTeam config.Team) *Team {
 	// Create a template team
 	team := &Team{
-		Name:   configTeam.Name,
+		info:   TeamInfo{Name: configTeam.Name},
 		config: configTeam,
 	}
 	return team
 }
 
+// Info returns a serialisable form of a given team
+func (t *Team) Info() *TeamInfo {
+	return &t.info
+}
+
+// Process is used to populate a given team with the details of its Github Org and Launchpad
+// repositories
 func (t *Team) Process() error {
 	log.Printf("processing team: %s", t.config.Name)
 
 	// Iterate over the Github orgs for a given team
-	for _, ghOrg := range t.config.Github {
-		log.Printf("processing org: %s\n", ghOrg.Name)
-
-		err := t.populateGithubRepos(ghOrg)
+	for _, org := range t.config.Github {
+		log.Printf("processing github org: %s\n", org.Name)
+		err := t.populateGithubRepos(org)
 		if err != nil {
 			return fmt.Errorf("error populating github repos: %w", err)
 		}
 	}
 
 	// Iterate over the Launchpad Project Groups for the team
-	for _, lpGroup := range t.config.Launchpad.ProjectGroups {
-		err := t.populateLaunchpadRepos(lpGroup, t.config.Launchpad.Ignores)
+	for _, group := range t.config.Launchpad.ProjectGroups {
+		log.Printf("processing launchpad project group: %s\n", group)
+		err := t.populateLaunchpadRepos(group)
 		if err != nil {
 			return fmt.Errorf("error populating launchpad repos: %w", err)
 		}
 	}
 
 	// Sort the repos by the last released
-	sort.Slice(t.Repos, func(i, j int) bool {
-		if len(t.Repos[i].Releases) == 0 || len(t.Repos[j].Releases) == 0 {
+	sort.Slice(t.info.Repos, func(i, j int) bool {
+		if len(t.info.Repos[i].Releases) == 0 || len(t.info.Repos[j].Releases) == 0 {
 			return false
 		}
-		return t.Repos[i].Releases[0].Timestamp > t.Repos[j].Releases[0].Timestamp
+		return t.info.Repos[i].Releases[0].Timestamp > t.info.Repos[j].Releases[0].Timestamp
 	})
 
 	return nil
@@ -64,99 +76,104 @@ func (t *Team) Process() error {
 
 // populateLaunchpadRepos creates a slice of Repo types representing the repos owned by
 // the specified Launchpad project groups
-func (t *Team) populateLaunchpadRepos(lpGroup string, ignores []string) error {
-	pg := launchpad.ProjectGroup{Name: lpGroup}
-
-	projects, err := pg.Projects()
+func (t *Team) populateLaunchpadRepos(projectGroup string) error {
+	projects, err := launchpad.EnumerateProjectGroup(projectGroup)
 	if err != nil {
 		return err
 	}
+
 	var wg sync.WaitGroup
+	repos := []Repository{}
 
 	for _, project := range projects {
+		// Check if the name of the repository is in the ignore list for the team, or if it
+		// specifies any VCS type other than Git
+		if contains(t.config.Launchpad.Ignores, project.Name) || project.Vcs != "Git" {
+			continue
+		}
+
+		// See if we can find a repo in this team with the same name, if the repository has
+		// already been added, skip
+		index := slices.IndexFunc(repos, func(repo Repository) bool { return repo.Info().Name == project.Name })
+		if index >= 0 {
+			continue
+		}
+
+		repo := NewLaunchpadRepository(project, projectGroup)
+		repos = append(repos, repo)
+
 		wg.Add(1)
-		go func(p launchpad.Project) {
+		go func() {
 			defer wg.Done()
-			log.Printf("processing launchpad repo: %s/%s\n", lpGroup, p.Name)
-
-			// Check if the name of the repository is in the ignore list for the team
-			if contains(ignores, p.Name) {
-				return
+			err := repo.Process()
+			if err != nil {
+				log.Printf("error populating repo %s from launchpad: %v", repo.Info().Name, err)
 			}
-
-			// See if we can find a repo in this team with the same name
-			index := slices.IndexFunc(
-				t.Repos, func(repo Repository) bool { return repo.Name == p.Name },
-			)
-
-			// TODO: Investigate if this read/append is thread safe
-			// We couldn't find the repo, so go ahead and add it
-			if index < 0 {
-				repo, err := NewLaunchpadRepository(p, lpGroup)
-				if repo != nil {
-					t.Repos = append(t.Repos, *repo)
-				}
-				if err != nil {
-					log.Printf("error creating launchpad repository: %v", err)
-				}
-			}
-		}(project)
+		}()
 	}
 	wg.Wait()
 
+	// Iterate over repos, add only those that have releases to the Team's list of repos
+	for _, r := range repos {
+		if len(r.Info().Releases) > 0 {
+			t.info.Repos = append(t.info.Repos, r.Info())
+		}
+	}
 	return nil
 }
 
 // populateGithubRepos creates a slice of Repo types representing the repos owned by the specified
 // teams in the Github org
-func (t *Team) populateGithubRepos(ghOrg config.GithubOrg) error {
+func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 	client := githubClient()
-	// repos := []Repo{}
 	ctx := context.Background()
-	// Iterate over the Github Teams, listing repos for each
-	for _, ghTeam := range ghOrg.Teams {
-		// Lists the Github repositories that the 'ghTeam' has access to.
-		ghRepos, _, err := client.Teams.ListTeamReposBySlug(
-			ctx,
-			ghOrg.Name,
-			ghTeam,
-			&github.ListOptions{PerPage: 1000},
-		)
+	opts := &github.ListOptions{PerPage: 1000}
 
+	// Iterate over the Github Teams, listing repos for each
+	for _, team := range org.Teams {
+		// Lists the Github repositories that the 'ghTeam' has access to.
+		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Name, team, opts)
 		if err != nil {
-			return fmt.Errorf("error listing repositories for github org: %s", ghOrg.Name)
+			return fmt.Errorf("error listing repositories for github org: %s", org.Name)
 		}
 
 		var wg sync.WaitGroup
+		repos := []Repository{}
 
 		// Iterate over repositories, populating release info for each
-		for _, r := range ghRepos {
+		for _, r := range orgRepos {
+			// Check if the name of the repository is in the ignore list for the team
+			if contains(org.Ignores, *r.Name) {
+				continue
+			}
+
+			// See if we can find a repo in this team with the same name, if the repository has
+			// already been added, skip
+			index := slices.IndexFunc(repos, func(repo Repository) bool { return repo.Info().Name == *r.Name })
+			if index >= 0 {
+				continue
+			}
+
+			repo := NewGithubRepository(r, team, org.Name)
+			repos = append(repos, repo)
+
 			wg.Add(1)
-			go func(r *github.Repository) {
+			go func() {
 				defer wg.Done()
-				log.Printf("processing github repo: %s/%s/%s\n", ghOrg.Name, ghTeam, *r.Name)
-
-				// Check if the name of the repository is in the ignore list for the team
-				if contains(ghOrg.Ignores, *r.Name) {
-					return
+				err := repo.Process()
+				if err != nil {
+					log.Printf("error populating repo %s from github: %v", repo.Info().Name, err)
 				}
-
-				// See if we can find a repo in this team with the same name
-				index := slices.IndexFunc(
-					t.Repos, func(repo Repository) bool { return repo.Name == *r.Name },
-				)
-
-				// TODO: Investigate if this read/append is thread safe
-				// We couldn't find the repo, so go ahead and add it
-				if index < 0 {
-					repo, err := NewGithubRepository(r, ghTeam, ghOrg)
-					if err == nil && repo != nil {
-						t.Repos = append(t.Repos, *repo)
-					}
-				}
-			}(r)
+			}()
 		}
 		wg.Wait()
+
+		// Iterate over repos, add only those that have releases to the Team's list of repos
+		for _, r := range repos {
+			if len(r.Info().Releases) > 0 {
+				t.info.Repos = append(t.info.Repos, r.Info())
+			}
+		}
 	}
 
 	return nil

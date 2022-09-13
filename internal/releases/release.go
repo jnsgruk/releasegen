@@ -18,8 +18,8 @@ type Release struct {
 }
 
 // NewRelease is used for constructing a valid Release
-func NewRelease(id int64, version string, ts time.Time, title string, body string, url string, compareUrl string) Release {
-	return Release{
+func NewRelease(id int64, version string, ts time.Time, title string, body string, url string, compareUrl string) *Release {
+	return &Release{
 		Id:         id,
 		Version:    version,
 		Timestamp:  ts.Unix(),
