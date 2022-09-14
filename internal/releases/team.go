@@ -27,7 +27,6 @@ type Team struct {
 
 // NewTeam creates a new team, and populates it's fields using the Github/Launchpad APIs
 func NewTeam(configTeam config.Team) *Team {
-	// Create a template team
 	team := &Team{
 		info:   TeamInfo{Name: configTeam.Name},
 		config: configTeam,
@@ -92,7 +91,9 @@ func (t *Team) populateLaunchpadRepos(projectGroup string) error {
 
 		// See if we can find a repo in this team with the same name, if the repository has
 		// already been added, skip
-		index := slices.IndexFunc(repos, func(repo Repository) bool { return repo.Info().Name == project.Name })
+		index := slices.IndexFunc(repos, func(repo Repository) bool {
+			return repo.Info().Name == project.Name
+		})
 		if index >= 0 {
 			continue
 		}
@@ -147,7 +148,9 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 
 			// See if we can find a repo in this team with the same name, if the repository has
 			// already been added, skip
-			index := slices.IndexFunc(repos, func(repo Repository) bool { return repo.Info().Name == *r.Name })
+			index := slices.IndexFunc(repos, func(repo Repository) bool {
+				return repo.Info().Name == *r.Name
+			})
 			if index >= 0 {
 				continue
 			}
