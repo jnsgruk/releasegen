@@ -53,9 +53,7 @@ func NewGithubRepository(repo *github.Repository, team string, org string) Repos
 }
 
 // Info returns a serialisable representation of the repository
-func (r *githubRepository) Info() RepositoryInfo {
-	return r.info
-}
+func (r *githubRepository) Info() RepositoryInfo { return r.info }
 
 // Process populates the Repository with details of its releases, and commits
 func (r *githubRepository) Process() error {
@@ -97,7 +95,7 @@ func (r *githubRepository) Process() error {
 }
 
 // NewLaunchpadRepository creates a new representation for a Launchpad Git repo
-func NewLaunchpadRepository(project launchpad.Project, lpGroup string) Repository {
+func NewLaunchpadRepository(project launchpad.ProjectEntry, lpGroup string) Repository {
 	// Create a repository to represent the Launchpad project
 	r := &launchpadRepository{
 		info: RepositoryInfo{
@@ -111,15 +109,13 @@ func NewLaunchpadRepository(project launchpad.Project, lpGroup string) Repositor
 }
 
 // Info returns a serialisable representation of the repository
-func (r *launchpadRepository) Info() RepositoryInfo {
-	return r.info
-}
+func (r *launchpadRepository) Info() RepositoryInfo { return r.info }
 
 // Process populates the Repository with details of its tags, default branch, and commits
 func (r *launchpadRepository) Process() error {
 	log.Printf("processing launchpad repo: %s/%s\n", r.lpProjectGroup, r.info.Name)
 
-	project := launchpad.Project{Name: r.info.Name}
+	project := launchpad.NewProject(r.info.Name)
 
 	defaultBranch, err := project.DefaultBranch()
 	if err != nil {

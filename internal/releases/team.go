@@ -36,9 +36,7 @@ func NewTeam(configTeam config.Team) *Team {
 }
 
 // Info returns a serialisable form of a given team
-func (t *Team) Info() *TeamInfo {
-	return &t.info
-}
+func (t *Team) Info() *TeamInfo { return &t.info }
 
 // Process is used to populate a given team with the details of its Github Org and Launchpad
 // repositories
