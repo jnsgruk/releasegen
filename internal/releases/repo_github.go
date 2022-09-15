@@ -43,7 +43,9 @@ func (r *githubRepository) Process() error {
 
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.info.Name, opts)
 	if err != nil {
-		return fmt.Errorf("error listing releases for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err)
+		return fmt.Errorf(
+			"error listing releases for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+		)
 	} else if len(releases) == 0 {
 		return nil
 	}
@@ -62,9 +64,15 @@ func (r *githubRepository) Process() error {
 	}
 
 	// Add the commit delta between last release and default branch
-	comparison, _, err := client.Repositories.CompareCommits(ctx, r.org, r.info.Name, r.info.Releases[0].Version, r.info.DefaultBranch, opts)
+	comparison, _, err := client.Repositories.CompareCommits(
+		ctx, r.org, r.info.Name, r.info.Releases[0].Version, r.info.DefaultBranch, opts,
+	)
+
 	if err != nil {
-		return fmt.Errorf("error getting commit comparison for release %s in %s/%s/%s", r.info.Releases[0].Version, r.org, r.team, r.info.Name)
+		return fmt.Errorf(
+			"error getting commit comparison for release %s in %s/%s/%s",
+			r.info.Releases[0].Version, r.org, r.team, r.info.Name,
+		)
 	}
 
 	r.info.NewCommits = *comparison.TotalCommits
