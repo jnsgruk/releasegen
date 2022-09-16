@@ -14,7 +14,30 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "releasegen",
 	Short: "releasegen - a utility for enumerating Github and Launchpad releases",
-	Long:  "releasegen - a utility for enumerating Github and Launchpad releases",
+	Long: `
+releasegen is a utility for enumerating Github and Launchpad releases/tags from 
+specified Github Organisations or Launchpad project groups.
+
+This tool is configured using a single file in one of the three following locations:
+
+	- ./releasegen.yaml
+	- $HOME/.config/releasegen.yaml
+	- /etc/releasegen/releasegen.yaml
+
+For more details on the configuration format, see the homepage below.
+
+Prior to launching, you must also set an environment variable named RELEASEGEN_TOKEN whose
+contents is a Github Personal Access token with sufficient rights over any org you wish to
+query. 
+
+For example:
+
+	export RELEASEGEN_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+You can create a Personal Access Token at: https://github.com/settings/tokens
+
+Homepage: https://github.com/jnsgruk/releasegen
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := viper.ReadInConfig()
 		if err != nil {
