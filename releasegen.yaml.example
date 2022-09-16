@@ -1,0 +1,37 @@
+# This is an example configuration file.
+#
+# If you wish to use it, please download and place in one of the following places:
+#
+#    - $(pwd)/releasegen.yaml
+#    - $HOME/.config/releasegen.yaml
+#    - /etc/releasegen/releasegen.yaml
+#
+# Oh, and update it to point to some actual teams ;-)
+
+teams:
+  - name: Frontend
+    github:
+      - org: acme-corp
+        teams:
+          - frontend-engineers
+          - frontend-admins
+          - frontend-bots
+        ignores:
+          - some-library
+          - some-old-project
+          - ci-utils
+
+  - name: Backend
+    github:
+      - org: acme-corp
+        teams:
+          - backend-engineers
+
+  - name: Packaging
+    github:
+      - org: acme-corp
+        teams:
+          - packaging-team
+    launchpad:
+      project-groups:
+        - acme-corp-debs
