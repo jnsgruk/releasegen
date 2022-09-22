@@ -141,8 +141,8 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 
 		// Iterate over repositories, populating release info for each
 		for _, r := range orgRepos {
-			// Check if the name of the repository is in the ignore list for the team
-			if contains(org.Ignores, *r.Name) {
+			// Check if the name of the repository is in the ignore list or private
+			if contains(org.Ignores, *r.Name) || *r.Private {
 				continue
 			}
 
