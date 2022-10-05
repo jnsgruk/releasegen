@@ -107,7 +107,7 @@ cd releasegen
 # Build/run with Go
 go run main.go
 
-# Build a snapshot release with goreleaser (putput in ./dist)
+# Build a snapshot release with goreleaser (output in ./dist)
 goreleaser build --rm-dist --snapshot
 ```
 
