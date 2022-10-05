@@ -148,8 +148,8 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 
 			// See if we can find a repo in this team with the same name, if the repository has
 			// already been added, skip
-			index := slices.IndexFunc(repos, func(repo Repository) bool {
-				return repo.Info().Name == *r.Name
+			index := slices.IndexFunc(t.info.Repos, func(repo RepositoryInfo) bool {
+				return repo.Name == *r.Name
 			})
 			if index >= 0 {
 				continue
