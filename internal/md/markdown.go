@@ -10,7 +10,7 @@ import (
 var prRegexp = regexp.MustCompile(`(https://github.com/canonical/.+/pull/([0-9]+))`)
 
 // userRegexp is used to find Twitter/Github style mentions such as '@JoeBloggs'
-var userRegexp = regexp.MustCompile(`(\A|\s)@(\w+)`)
+var userRegexp = regexp.MustCompile(`(\A|\s)@([\w-_]+)`)
 
 // RenderReleaseBody transforms a Markdown string into HTML
 func RenderReleaseBody(body string) string {
