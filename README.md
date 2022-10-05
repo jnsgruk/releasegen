@@ -118,7 +118,3 @@ Contributions are welcome through the means of issues, pull requests or whatever
 Some things I'd like to get around to:
 
 - [ ] Add some unit tests (!!!)
-- [ ] Reconsider output format
-  - `body_html` -> `body`
-  - `href` -> `release_url`
-  - `compare_href` -> `compare_url`
