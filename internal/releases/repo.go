@@ -27,9 +27,9 @@ type Release struct {
 	Version    string `json:"version"`
 	Timestamp  int64  `json:"timestamp"`
 	Title      string `json:"title"`
-	Body       string `json:"body_html"`
-	Url        string `json:"href"`
-	CompareUrl string `json:"compare_href"`
+	Body       string `json:"body"`
+	Url        string `json:"url"`
+	CompareUrl string `json:"compare_url"`
 }
 
 // NewRelease is used for constructing a valid Release
