@@ -21,5 +21,6 @@ func RenderReleaseBody(body string) string {
 
 	// Render the Markdown to HTML
 	md := []byte(body)
-	return string(markdown.ToHTML(md, nil, nil))
+	normalised := markdown.NormalizeNewlines(md)
+	return string(markdown.ToHTML(normalised, nil, nil))
 }
