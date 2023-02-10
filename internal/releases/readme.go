@@ -2,6 +2,7 @@ package releases
 
 import (
   "regexp"
+  "strings"
 )
 
 // ciBadgeRegex is used to find Github CI Badges
@@ -9,12 +10,16 @@ var ciBadgeRegexp = regexp.MustCompile(`!\[.*\]\((?P<Action>https://github.com/.
 var charmBadgeRegexp = regexp.MustCompile(`!\[.*\]\(https://charmhub.io/(?P<Name>.+)/badge.svg\)`)
 
 // GetCiStages tries to extract CI stages from the Badges in the README
-func GetCiStages(readme string) (badges []string) {
+func GetCiStages(readme string, repoName string) (badges []string) {
   // Parse all the CI stages
   actionIndex := ciBadgeRegexp.SubexpIndex("Action")
   matches := ciBadgeRegexp.FindAllStringSubmatch(readme, -1)
-  for index, _ := range matches {
-    badges = append(badges, matches[index][actionIndex])
+  for _, actionMatch := range matches {
+    // Check if the Badge belongs to the repository
+    action := actionMatch[actionIndex]
+    if strings.Contains(action, repoName) {
+      badges = append(badges, action)
+    }
   }
   return badges
 }

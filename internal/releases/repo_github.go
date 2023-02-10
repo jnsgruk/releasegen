@@ -95,7 +95,7 @@ func (r *githubRepository) Process() error {
   }
 
   // Extract CI and Charm info from the README
-  ciStages := GetCiStages(readmeContent)
+  ciStages := GetCiStages(readmeContent, r.info.Name)
   if len(ciStages) > 0 {
     r.info.Ci = ciStages
   }
