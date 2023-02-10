@@ -13,6 +13,7 @@ type RepositoryInfo struct {
 	NewCommits    int             `json:"new_commits"`
 	Url           string          `json:"url"`
 	Releases      []*Release      `json:"releases"`
+  IsArchived      bool          `json:"is_archived"`
   Ci            []string        `json:"ci"`
   CharmUrl      string          `json:"charm_url"`
   CharmReleases []*CharmRelease `json:"charm_releases"`

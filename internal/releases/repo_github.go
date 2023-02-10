@@ -41,6 +41,16 @@ func (r *githubRepository) Process() error {
 	ctx := context.Background()
 	opts := &github.ListOptions{PerPage: 3}
 
+  // Check if the repository is archived
+  repoObject, _, err := client.Repositories.Get(ctx, r.org, r.info.Name)
+  if err != nil {
+    return fmt.Errorf(
+      "error while checking archived status for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+    )
+  }
+  r.info.IsArchived = repoObject.GetArchived()
+
+  // Get the releases from the repo
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.info.Name, opts)
 	if err != nil {
 		return fmt.Errorf(
@@ -76,6 +86,7 @@ func (r *githubRepository) Process() error {
 	}
 
 	r.info.NewCommits = *comparison.TotalCommits
+
 
   // Scrape the README for eventual Charm and CI information
   readme, _ , err := client.Repositories.GetReadme(ctx, r.org, r.info.Name, nil)

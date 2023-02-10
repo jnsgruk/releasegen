@@ -169,11 +169,11 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 		}
 		wg.Wait()
 
-		// Iterate over repos, add only those that have releases to the Team's list of repos
+		// Iterate over repos, add all the unarchived ones to the Team's list of repos
 		for _, r := range repos {
-			if len(r.Info().Releases) > 0 {
-				t.info.Repos = append(t.info.Repos, r.Info())
-			}
+      if !r.Info().IsArchived {
+			  t.info.Repos = append(t.info.Repos, r.Info())
+      }
 		}
 	}
 
