@@ -5,8 +5,9 @@ import (
   "strings"
 )
 
-// ciBadgeRegex is used to find Github CI Badges
+// ciBadgeRegexp is used to find action in Github CI Badges
 var ciBadgeRegexp = regexp.MustCompile(`!\[.*\]\((?P<Action>https://github.com/.+)/badge.svg\)`)
+// charmBadgeRegexp is used to find a Charm's name in its CharmHub badge
 var charmBadgeRegexp = regexp.MustCompile(`!\[.*\]\(https://charmhub.io/(?P<Name>.+)/badge.svg\)`)
 
 // GetCiStages tries to extract CI stages from the Badges in the README
