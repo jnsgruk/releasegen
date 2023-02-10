@@ -136,7 +136,7 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 			return fmt.Errorf("error listing repositories for github org: %s", org.Name)
 		}
 
-		//var wg sync.WaitGroup
+		var wg sync.WaitGroup
 		repos := []Repository{}
 
 		// Iterate over repositories, populating release info for each
@@ -158,20 +158,16 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 			repo := NewGithubRepository(r, team, org.Name)
 			repos = append(repos, repo)
 
-			//wg.Add(1)
-			//go func() {
-			//	defer wg.Done()
-			//	err := repo.Process()
-			//	if err != nil {
-			//		log.Printf("error populating repo %s from github: %v", repo.Info().Name, err)
-			//	}
-			//}()
-      err := repo.Process()
-      if err != nil {
-        log.Printf("error populating repo %s from github: %v", repo.Info().Name, err)
-      }
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := repo.Process()
+				if err != nil {
+					log.Printf("error populating repo %s from github: %v", repo.Info().Name, err)
+				}
+			}()
 		}
-		//wg.Wait()
+		wg.Wait()
 
 		// Iterate over repos, add only those that have releases to the Team's list of repos
 		for _, r := range repos {
