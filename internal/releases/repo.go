@@ -8,11 +8,14 @@ import (
 
 // RepositoryInfo represents the serialisable form of a Repository for the Report
 type RepositoryInfo struct {
-	Name          string     `json:"name"`
-	DefaultBranch string     `json:"default_branch"`
-	NewCommits    int        `json:"new_commits"`
-	Url           string     `json:"url"`
-	Releases      []*Release `json:"releases"`
+	Name          string          `json:"name"`
+	DefaultBranch string          `json:"default_branch"`
+	NewCommits    int             `json:"new_commits"`
+	Url           string          `json:"url"`
+	Releases      []*Release      `json:"releases"`
+  Ci            []string        `json:"ci"`
+  CharmUrl      string          `json:"charm_url"`
+  CharmReleases []*CharmRelease `json:"charm_releases"`
 }
 
 // Repository is an interface that provides common methods for different types of repository
@@ -43,4 +46,22 @@ func NewRelease(id int64, version string, ts time.Time, title string, body strin
 		Url:        url,
 		CompareUrl: compareUrl,
 	}
+}
+
+// CharmRelease represents a charm release on CharmHub
+type CharmRelease struct {
+  Track     string `json:"track"`
+  Channel   string `json:"release"`
+  Revision  int64  `json:"revision"`
+  Timestamp int64  `json:"timestamp"`
+}
+
+// NewCharmRelease is used for constructing a valid CharmRelease
+func NewCharmRelease(track string, channel string, revision int64, ts time.Time) *CharmRelease {
+  return &CharmRelease {
+    Track:     track,
+    Channel:   channel,
+    Revision:  revision,
+    Timestamp: ts.Unix(),
+  }
 }

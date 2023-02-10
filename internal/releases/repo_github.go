@@ -77,5 +77,34 @@ func (r *githubRepository) Process() error {
 
 	r.info.NewCommits = *comparison.TotalCommits
 
+  //TODO: Add CI info (and maybe Charmhub here as well?)
+  // Scrape the README for eventual Charm and CI information
+  readme, _ , err := client.Repositories.GetReadme(ctx, r.org, r.info.Name, nil)
+  if err != nil {
+    //TODO: Check if no README means err is set; in that case, don't exit on err
+    return fmt.Errorf(
+      "error getting README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+    )
+  }
+
+  readmeContent, err := readme.GetContent()
+  if err != nil {
+    return fmt.Errorf(
+      "error reading README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+    )
+  }
+
+  // Extract CI and Charm info from the README
+  ciStages := GetCiStages(readmeContent)
+  if len(ciStages) > 0 {
+    r.info.Ci = ciStages
+  }
+  charmName := GetCharmName(readmeContent)
+  if charmName != "" {
+    r.info.CharmUrl = fmt.Sprintf("https://charmhub.io/%s", charmName)
+    // Get Charm releases information
+    r.info.CharmReleases, err = FetchCharmInfo(charmName)
+  }
+
 	return nil
 }
