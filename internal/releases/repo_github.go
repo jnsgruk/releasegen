@@ -103,15 +103,20 @@ func (r *githubRepository) Process() error {
     )
   }
 
-  // Extract CI and Charm info from the README
+  // Extract CI info from the README
   ciStages := GetCiStages(readmeContent, r.info.Name)
   if len(ciStages) > 0 {
     r.info.Ci = ciStages
   }
+
+  // If the README has a CharmHub Badge, fetch the charm information
   charmName := GetCharmName(readmeContent)
   if charmName != "" {
-    r.info.CharmUrl = fmt.Sprintf("https://charmhub.io/%s", charmName)
-    r.info.CharmReleases, err = FetchCharmInfo(charmName)
+    r.info.Charm = &CharmInfo{
+      Name: charmName,
+      Url: fmt.Sprintf("https://charmhub.io/%s", charmName),
+    }
+    r.info.Charm.FetchCharmInfo()
   }
 
 	return nil
