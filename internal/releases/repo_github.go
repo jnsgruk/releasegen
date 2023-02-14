@@ -56,51 +56,63 @@ func (r *githubRepository) Process() error {
 		return fmt.Errorf(
 			"error listing releases for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
 		)
-	} else if len(releases) == 0 {
-		return nil
+	} else if len(releases) != 0 { // If there are releases, add them
+    // Iterate over the releases in the Github repo
+    for _, rel := range releases {
+      r.info.Releases = append(r.info.Releases, NewRelease(
+        rel.GetID(),
+        rel.GetTagName(),
+        rel.CreatedAt.Time,
+        rel.GetName(),
+        rel.GetBody(),
+        rel.GetHTMLURL(),
+        fmt.Sprintf("%s/compare/%s...%s", r.info.Url, rel.GetTagName(), r.info.DefaultBranch),
+      ))
+    }
+
+    // Add the commit delta between last release and default branch
+    comparison, _, err := client.Repositories.CompareCommits(
+      ctx, r.org, r.info.Name, r.info.Releases[0].Version, r.info.DefaultBranch, opts,
+    )
+
+    if err != nil {
+      return fmt.Errorf(
+        "error getting commit comparison for release %s in %s/%s/%s",
+        r.info.Releases[0].Version, r.org, r.team, r.info.Name,
+      )
+    }
+
+    r.info.NewCommits = *comparison.TotalCommits
+  } else { 
+    // If there are no releases, get the latest commit instead
+    commits, _, err := client.Repositories.ListCommits(ctx, r.org, r.info.Name, nil)
+    // If there is at least one commit, add it as a release
+    if err == nil {
+      com := commits[0]
+      r.info.Releases = append(r.info.Releases, NewRelease(
+        1,
+        com.GetSHA()[:7],
+        com.GetCommit().GetAuthor().GetDate(),
+        com.GetSHA()[:7],
+        com.GetCommit().GetMessage(),
+        com.GetHTMLURL(),
+        fmt.Sprintf("%s/commit/%s", r.info.Url, com.GetSHA()),
+      ))
+    }
 	}
-
-	// Iterate over the releases in the Github repo
-	for _, rel := range releases {
-		r.info.Releases = append(r.info.Releases, NewRelease(
-			rel.GetID(),
-			rel.GetTagName(),
-			rel.CreatedAt.Time,
-			rel.GetName(),
-			rel.GetBody(),
-			rel.GetHTMLURL(),
-			fmt.Sprintf("%s/compare/%s...%s", r.info.Url, rel.GetTagName(), r.info.DefaultBranch),
-		))
-	}
-
-	// Add the commit delta between last release and default branch
-	comparison, _, err := client.Repositories.CompareCommits(
-		ctx, r.org, r.info.Name, r.info.Releases[0].Version, r.info.DefaultBranch, opts,
-	)
-
-	if err != nil {
-		return fmt.Errorf(
-			"error getting commit comparison for release %s in %s/%s/%s",
-			r.info.Releases[0].Version, r.org, r.team, r.info.Name,
-		)
-	}
-
-	r.info.NewCommits = *comparison.TotalCommits
-
 
   // Scrape the README for eventual Charm and CI information
   readme, _ , err := client.Repositories.GetReadme(ctx, r.org, r.info.Name, nil)
+  // If there is no readme, don't try to parse it
   if err != nil {
-    return fmt.Errorf(
-      "error getting README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
-    )
+    return nil 
   }
 
   readmeContent, err := readme.GetContent()
   if err != nil {
-    return fmt.Errorf(
-      "error reading README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
-    )
+   return fmt.Errorf(
+     "error reading README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+   )
   }
 
   // Extract CI info from the README
