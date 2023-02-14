@@ -8,14 +8,14 @@ import (
 
 // RepositoryInfo represents the serialisable form of a Repository for the Report
 type RepositoryInfo struct {
-	Name          string          `json:"name"`
-	DefaultBranch string          `json:"default_branch"`
-	NewCommits    int             `json:"new_commits"`
-	Url           string          `json:"url"`
-	Releases      []*Release      `json:"releases"`
-  IsArchived      bool          `json:"is_archived"`
-  Ci            []string        `json:"ci"`
-  Charm         *CharmInfo      `json:"charm"`
+	Name          string     `json:"name"`
+	DefaultBranch string     `json:"default_branch"`
+	NewCommits    int        `json:"new_commits"`
+	Url           string     `json:"url"`
+	Releases      []*Release `json:"releases"`
+	IsArchived    bool       `json:"is_archived"`
+	Ci            []string   `json:"ci"`
+	Charm         *CharmInfo `json:"charm"`
 }
 
 // Repository is an interface that provides common methods for different types of repository
@@ -50,18 +50,18 @@ func NewRelease(id int64, version string, ts time.Time, title string, body strin
 
 // CharmRelease represents a charm release on CharmHub
 type CharmRelease struct {
-  Track     string `json:"track"`
-  Channel   string `json:"channel"`
-  Revision  int64  `json:"revision"`
-  Timestamp int64  `json:"timestamp"`
+	Track     string `json:"track"`
+	Channel   string `json:"channel"`
+	Revision  int64  `json:"revision"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // NewCharmRelease is used for constructing a valid CharmRelease
 func NewCharmRelease(track string, channel string, revision int64, ts time.Time) *CharmRelease {
-  return &CharmRelease {
-    Track:     track,
-    Channel:   channel,
-    Revision:  revision,
-    Timestamp: ts.Unix(),
-  }
+	return &CharmRelease{
+		Track:     track,
+		Channel:   channel,
+		Revision:  revision,
+		Timestamp: ts.Unix(),
+	}
 }
