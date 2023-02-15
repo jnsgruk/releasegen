@@ -133,7 +133,7 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 		// Lists the Github repositories that the 'ghTeam' has access to.
 		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Name, team, opts)
 		if err != nil {
-			return fmt.Errorf("error listing repositories for github org: %s", org.Name)
+			return fmt.Errorf("error listing repositories for github org %s: %v", org.Name, err)
 		}
 
 		var wg sync.WaitGroup
@@ -169,9 +169,9 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 		}
 		wg.Wait()
 
-		// Iterate over repos, add only those that have releases to the Team's list of repos
+		// Iterate over repos and add the unarchived ones that have at least one commit
 		for _, r := range repos {
-			if len(r.Info().Releases) > 0 {
+			if !r.Info().IsArchived && (len(r.Info().Releases) > 0 || len(r.Info().Commits) > 0) {
 				t.info.Repos = append(t.info.Repos, r.Info())
 			}
 		}
