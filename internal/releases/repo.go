@@ -13,8 +13,9 @@ type RepositoryInfo struct {
 	NewCommits    int        `json:"new_commits"`
 	Url           string     `json:"url"`
 	Releases      []*Release `json:"releases"`
+	Commits       []*Commit  `json:"commits"`
 	IsArchived    bool       `json:"is_archived"`
-	Ci            []string   `json:"ci"`
+	CiActions     []string   `json:"ci_actions"`
 	Charm         *CharmInfo `json:"charm"`
 }
 
@@ -63,5 +64,25 @@ func NewCharmRelease(track string, channel string, revision int64, ts time.Time)
 		Channel:   channel,
 		Revision:  revision,
 		Timestamp: ts.Unix(),
+	}
+}
+
+// Commit represents a GitHub commit
+type Commit struct {
+	Sha       string `json:"sha"`
+	Author    string `json:"author"`
+	Timestamp int64  `json:"timestamp"`
+	Message   string `json:"message"`
+	Url       string `json:"url"`
+}
+
+// NewCommit constructs a valid Commit
+func NewCommit(sha string, author string, ts time.Time, message string, url string) *Commit {
+	return &Commit{
+		Sha:       sha,
+		Author:    author,
+		Timestamp: ts.Unix(),
+		Message:   message,
+		Url:       url,
 	}
 }

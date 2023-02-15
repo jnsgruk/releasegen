@@ -45,7 +45,7 @@ func (c *CharmInfo) FetchCharmInfo() (err error) {
 	revision := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
 
 	// Create a CharmRelease array with the obtained information
-	for index, _ := range tracks {
+	for index := range tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", releaseTime[index].String())
 		c.Releases = append(c.Releases, NewCharmRelease(
 			tracks[index].String(),

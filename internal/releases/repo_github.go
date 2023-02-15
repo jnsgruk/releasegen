@@ -89,14 +89,12 @@ func (r *githubRepository) Process() error {
 		// If there is at least one commit, add it as a release
 		if err == nil {
 			com := commits[0]
-			r.info.Releases = append(r.info.Releases, NewRelease(
-				1,
-				com.GetSHA()[:7],
+			r.info.Commits = append(r.info.Commits, NewCommit(
+				com.GetSHA(),
+				com.GetCommit().GetAuthor().GetName(),
 				com.GetCommit().GetAuthor().GetDate(),
-				com.GetSHA()[:7],
 				com.GetCommit().GetMessage(),
 				com.GetHTMLURL(),
-				fmt.Sprintf("%s/commit/%s", r.info.Url, com.GetSHA()),
 			))
 		}
 	}
@@ -116,14 +114,12 @@ func (r *githubRepository) Process() error {
 	}
 
 	// Extract CI info from the README
-	ciStages := GetCiStages(readmeContent, r.info.Name)
-	if len(ciStages) > 0 {
-		r.info.Ci = ciStages
+	if ciActions := GetCiActions(readmeContent, r.info.Name); len(ciActions) > 0 {
+		r.info.CiActions = ciActions
 	}
 
 	// If the README has a CharmHub Badge, fetch the charm information
-	charmName := GetCharmName(readmeContent)
-	if charmName != "" {
+	if charmName := GetCharmName(readmeContent); charmName != "" {
 		r.info.Charm = &CharmInfo{
 			Name: charmName,
 			Url:  fmt.Sprintf("https://charmhub.io/%s", charmName),
