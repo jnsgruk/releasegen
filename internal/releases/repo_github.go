@@ -56,7 +56,7 @@ func (r *githubRepository) Process() error {
 		return fmt.Errorf(
 			"error listing releases for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
 		)
-	} else if len(releases) != 0 { // If there are releases, add them
+	} else if len(releases) != 0 {
 		// Iterate over the releases in the Github repo
 		for _, rel := range releases {
 			r.info.Releases = append(r.info.Releases, NewRelease(
