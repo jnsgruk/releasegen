@@ -133,7 +133,7 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 		// Lists the Github repositories that the 'ghTeam' has access to.
 		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Name, team, opts)
 		if err != nil {
-			return fmt.Errorf("error listing repositories for github org: %s", org.Name)
+			return fmt.Errorf("error listing repositories for github org %s: %v", org.Name, err)
 		}
 
 		var wg sync.WaitGroup

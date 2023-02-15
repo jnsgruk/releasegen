@@ -48,7 +48,10 @@ func (r *githubRepository) Process() error {
 			"error while checking archived status for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
 		)
 	}
-	r.info.IsArchived = repoObject.GetArchived()
+	//Skip archived repositories
+	if r.info.IsArchived = repoObject.GetArchived(); r.info.IsArchived {
+		return nil
+	}
 
 	// Get the releases from the repo
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.info.Name, opts)
