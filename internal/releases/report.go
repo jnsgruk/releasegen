@@ -27,7 +27,7 @@ func GenerateReport(conf *config.Config) ReleaseReport {
 			defer wg.Done()
 			err := team.Process()
 			if err != nil {
-				log.Printf("error processing team '%s': %w", team.Info().Name, err)
+				log.Printf("error processing team '%s': %v", team.Info().Name, err)
 			}
 		}()
 	}
