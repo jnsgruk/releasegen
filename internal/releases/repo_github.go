@@ -44,8 +44,10 @@ func (r *githubRepository) Process() error {
 	// Check if the repository is archived
 	repoObject, _, err := client.Repositories.Get(ctx, r.org, r.info.Name)
 	if err != nil {
+		desc := parseGithubApiError(err)
 		return fmt.Errorf(
-			"error while checking archived status for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+			"error while checking archived status for repo '%s/%s/%s': %s",
+			r.org, r.team, r.info.Name, desc,
 		)
 	}
 	//Skip archived repositories
