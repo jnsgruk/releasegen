@@ -23,3 +23,13 @@ func githubClient() *github.Client {
 	}
 	return ghClient
 }
+
+func parseGithubApiError(err error) string {
+	if _, ok := err.(*github.RateLimitError); ok {
+		return "rate limit exceeded"
+	}
+	if _, ok := err.(*github.AbuseRateLimitError); ok {
+		return "secondary rate limit exceeded"
+	}
+	return err.Error()
+}

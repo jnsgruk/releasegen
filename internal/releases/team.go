@@ -133,7 +133,8 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 		// Lists the Github repositories that the 'ghTeam' has access to.
 		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Name, team, opts)
 		if err != nil {
-			return fmt.Errorf("error listing repositories for github org %s: %v", org.Name, err)
+			desc := parseGithubApiError(err)
+			return fmt.Errorf("error listing repositories for github org '%s': %s", org.Name, desc)
 		}
 
 		var wg sync.WaitGroup
@@ -163,7 +164,8 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 				defer wg.Done()
 				err := repo.Process()
 				if err != nil {
-					log.Printf("error populating repo %s from github: %v", repo.Info().Name, err)
+					desc := parseGithubApiError(err)
+					log.Printf("error populating repo '%s' from github: %s", repo.Info().Name, desc)
 				}
 			}()
 		}
