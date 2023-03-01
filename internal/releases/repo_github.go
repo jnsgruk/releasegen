@@ -56,8 +56,9 @@ func (r *githubRepository) Process() error {
 	// Get the releases from the repo
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.info.Name, opts)
 	if err != nil {
+		desc := parseGithubApiError(err)
 		return fmt.Errorf(
-			"error listing releases for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
+			"error listing releases for repo '%s/%s/%s': %s", r.org, r.team, r.info.Name, desc,
 		)
 	} else if len(releases) > 0 {
 		// Iterate over the releases in the Github repo
@@ -79,9 +80,10 @@ func (r *githubRepository) Process() error {
 		)
 
 		if err != nil {
+			desc := parseGithubApiError(err)
 			return fmt.Errorf(
-				"error getting commit comparison for release %s in %s/%s/%s",
-				r.info.Releases[0].Version, r.org, r.team, r.info.Name,
+				"error getting commit comparison for release '%s' in '%s/%s/%s': %s",
+				r.info.Releases[0].Version, r.org, r.team, r.info.Name, desc,
 			)
 		}
 
@@ -104,16 +106,14 @@ func (r *githubRepository) Process() error {
 
 	// Scrape the README for eventual Charm and CI information
 	readme, _, err := client.Repositories.GetReadme(ctx, r.org, r.info.Name, nil)
-	// If there is no readme, don't try to parse it
 	if err != nil {
-		return nil
+		desc := parseGithubApiError(err)
+		return fmt.Errorf("error getting README for repo '%s/%s/%s': %s", r.org, r.team, r.info.Name, desc)
 	}
 
 	readmeContent, err := readme.GetContent()
 	if err != nil {
-		return fmt.Errorf(
-			"error reading README for repo: %s/%s/%s: %v", r.org, r.team, r.info.Name, err,
-		)
+		return fmt.Errorf("error getting README content for repo '%s/%s/%s'", r.org, r.team, r.info.Name)
 	}
 
 	// Extract CI info from the README
