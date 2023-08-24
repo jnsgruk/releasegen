@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v54/github"
 	"github.com/jnsgruk/releasegen/internal/config"
 	"github.com/jnsgruk/releasegen/internal/launchpad"
 	"golang.org/x/exp/slices"

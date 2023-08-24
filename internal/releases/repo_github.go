@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v54/github"
 )
 
 // githubRepository represents a single Github repository
