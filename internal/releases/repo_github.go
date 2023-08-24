@@ -96,10 +96,11 @@ func (r *githubRepository) Process() error {
 		// If there is at least one commit, add it as a release
 		if err == nil {
 			com := commits[0]
+			ts := com.GetCommit().GetAuthor().GetDate()
 			r.info.Commits = append(r.info.Commits, NewCommit(
 				com.GetSHA(),
 				com.GetCommit().GetAuthor().GetName(),
-				com.GetCommit().GetAuthor().GetDate(),
+				*ts.GetTime(),
 				com.GetCommit().GetMessage(),
 				com.GetHTMLURL(),
 			))
