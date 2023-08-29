@@ -137,7 +137,6 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 			return fmt.Errorf("error listing repositories for github org '%s': %s", org.Name, desc)
 		}
 
-		var wg sync.WaitGroup
 		repos := []Repository{}
 
 		// Iterate over repositories, populating release info for each
@@ -159,17 +158,12 @@ func (t *Team) populateGithubRepos(org config.GithubOrg) error {
 			repo := NewGithubRepository(r, team, org.Name)
 			repos = append(repos, repo)
 
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				err := repo.Process()
-				if err != nil {
-					desc := parseGithubApiError(err)
-					log.Printf("error populating repo '%s' from github: %s", repo.Info().Name, desc)
-				}
-			}()
+			err := repo.Process()
+			if err != nil {
+				desc := parseGithubApiError(err)
+				log.Printf("error populating repo '%s' from github: %s", repo.Info().Name, desc)
+			}
 		}
-		wg.Wait()
 
 		// Iterate over repos and add the unarchived ones that have at least one commit
 		for _, r := range repos {
