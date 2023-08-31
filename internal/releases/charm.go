@@ -2,7 +2,7 @@ package releases
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -33,7 +33,7 @@ func (c *CharmInfo) FetchCharmInfo() (err error) {
 	}
 
 	// Pase the useful information from the response
-	resBody, err := ioutil.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("cannot read response body while fetching %s", apiUrl)
 	}

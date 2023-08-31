@@ -3,7 +3,7 @@ package launchpad
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -101,7 +101,7 @@ func EnumerateProjectGroup(projectGroup string) ([]ProjectEntry, error) {
 	}
 	defer res.Body.Close()
 
-	body, readErr := ioutil.ReadAll(res.Body)
+	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		return nil, err
 	}
