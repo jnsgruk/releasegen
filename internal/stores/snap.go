@@ -1,4 +1,4 @@
-package releases
+package stores
 
 import (
 	"fmt"
@@ -9,35 +9,8 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// SnapRelease represents a charm release on Snapcraft.io
-type SnapRelease struct {
-	Track     string `json:"track"`
-	Channel   string `json:"channel"`
-	Revision  int64  `json:"revision"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-// NewSnapRelease is used for constructing a valid SnapRelease
-func NewSnapRelease(track string, channel string, revision int64, ts time.Time) *SnapRelease {
-	return &SnapRelease{
-		Track:     track,
-		Channel:   channel,
-		Revision:  revision,
-		Timestamp: ts.Unix(),
-	}
-}
-
-// SnapInfo holds all Charm information
-type SnapInfo struct {
-	Name     string         `json:"name"`
-	Url      string         `json:"url"`
-	Releases []*SnapRelease `json:"releases"`
-	Channels []string       `json:"channels"`
-	Tracks   []string       `json:"tracks"`
-}
-
 // FetchSnapInfo fetches the Json representing charm information by querying the Snapcraft API
-func (c *SnapInfo) FetchSnapInfo() (err error) {
+func (c *StoreArtifact) FetchSnapInfo() (err error) {
 	// Query the Snapcraft API to obtain the charm information
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision", c.Name)
 
@@ -72,7 +45,7 @@ func (c *SnapInfo) FetchSnapInfo() (err error) {
 	// Create a SnapRelease array with the obtained information
 	for index := range tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", releaseTime[index].String())
-		c.Releases = append(c.Releases, NewSnapRelease(
+		c.Releases = append(c.Releases, NewStoreRelease(
 			tracks[index].String(),
 			channels[index].String(),
 			revision[index].Int(),

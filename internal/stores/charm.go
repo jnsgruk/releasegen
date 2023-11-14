@@ -1,4 +1,4 @@
-package releases
+package stores
 
 import (
 	"fmt"
@@ -9,35 +9,18 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// CharmRelease represents a charm release on CharmHub
-type CharmRelease struct {
-	Track     string `json:"track"`
-	Channel   string `json:"channel"`
-	Revision  int64  `json:"revision"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-// NewCharmRelease is used for constructing a valid CharmRelease
-func NewCharmRelease(track string, channel string, revision int64, ts time.Time) *CharmRelease {
-	return &CharmRelease{
-		Track:     track,
-		Channel:   channel,
-		Revision:  revision,
-		Timestamp: ts.Unix(),
+// GetCharmName tries to parse the Charm name from a CharmHub badge in the README
+func GetCharmName(readme string) (name string) {
+	nameIndex := charmBadgeRegexp.SubexpIndex("Name")
+	matches := charmBadgeRegexp.FindStringSubmatch(readme)
+	if len(matches) > 0 {
+		name = matches[nameIndex]
 	}
-}
-
-// CharmInfo holds all Charm information
-type CharmInfo struct {
-	Name     string          `json:"name"`
-	Url      string          `json:"url"`
-	Releases []*CharmRelease `json:"releases"`
-	Channels []string        `json:"channels"`
-	Tracks   []string        `json:"tracks"`
+	return name
 }
 
 // FetchCharmInfo fetches the Json representing charm information by querying the Snapcraft API
-func (c *CharmInfo) FetchCharmInfo() (err error) {
+func (c *StoreArtifact) FetchCharmInfo() (err error) {
 	// Query the Snapcraft API to obtain the charm information
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map", c.Name)
 	res, err := http.Get(apiUrl)
@@ -65,7 +48,7 @@ func (c *CharmInfo) FetchCharmInfo() (err error) {
 	// Create a CharmRelease array with the obtained information
 	for index := range tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", releaseTime[index].String())
-		c.Releases = append(c.Releases, NewCharmRelease(
+		c.Releases = append(c.Releases, NewStoreRelease(
 			tracks[index].String(),
 			channels[index].String(),
 			revision[index].Int(),

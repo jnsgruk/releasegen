@@ -4,20 +4,21 @@ import (
 	"time"
 
 	"github.com/jnsgruk/releasegen/internal/md"
+	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
 // RepositoryInfo represents the serialisable form of a Repository for the Report
 type RepositoryInfo struct {
-	Name          string     `json:"name"`
-	DefaultBranch string     `json:"default_branch"`
-	NewCommits    int        `json:"new_commits"`
-	Url           string     `json:"url"`
-	Releases      []*Release `json:"releases"`
-	Commits       []*Commit  `json:"commits"`
-	IsArchived    bool       `json:"is_archived"`
-	CiActions     []string   `json:"ci_actions"`
-	Charm         *CharmInfo `json:"charm"`
-	Snap          *SnapInfo  `json:"snap"`
+	Name          string                `json:"name"`
+	DefaultBranch string                `json:"default_branch"`
+	NewCommits    int                   `json:"new_commits"`
+	Url           string                `json:"url"`
+	Releases      []*Release            `json:"releases"`
+	Commits       []*Commit             `json:"commits"`
+	IsArchived    bool                  `json:"is_archived"`
+	CiActions     []string              `json:"ci_actions"`
+	Charm         *stores.StoreArtifact `json:"charm"`
+	Snap          *stores.StoreArtifact `json:"snap"`
 }
 
 // Repository is an interface that provides common methods for different types of repository

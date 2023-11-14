@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/google/go-github/v54/github"
+	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
 // githubRepository represents a single Github repository
@@ -125,8 +126,8 @@ func (r *githubRepository) Process() error {
 	}
 
 	// If the README has a CharmHub Badge, fetch the charm information
-	if charmName := GetCharmName(readmeContent); charmName != "" {
-		r.info.Charm = &CharmInfo{
+	if charmName := stores.GetArtifactName(readmeContent, "charm"); charmName != "" {
+		r.info.Charm = &stores.StoreArtifact{
 			Name: charmName,
 			Url:  fmt.Sprintf("https://charmhub.io/%s", charmName),
 		}
@@ -134,8 +135,8 @@ func (r *githubRepository) Process() error {
 	}
 
 	// If the README has a Snapcraft Badge, fetch the snap information
-	if snapName := GetSnapName(readmeContent); snapName != "" {
-		r.info.Snap = &SnapInfo{
+	if snapName := stores.GetArtifactName(readmeContent, "snap"); snapName != "" {
+		r.info.Snap = &stores.StoreArtifact{
 			Name: snapName,
 			Url:  fmt.Sprintf("https://snapcraft.io/%s", snapName),
 		}
