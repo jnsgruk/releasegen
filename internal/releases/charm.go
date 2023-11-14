@@ -36,7 +36,7 @@ type CharmInfo struct {
 	Tracks   []string        `json:"tracks"`
 }
 
-// FetchCharmInfo fetches the Json representing charm information by quering the Snapcraft API
+// FetchCharmInfo fetches the Json representing charm information by querying the Snapcraft API
 func (c *CharmInfo) FetchCharmInfo() (err error) {
 	// Query the Snapcraft API to obtain the charm information
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map", c.Name)
