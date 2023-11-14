@@ -1,23 +1,23 @@
-package releases
+package launchpad
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/jnsgruk/releasegen/internal/launchpad"
+	"github.com/jnsgruk/releasegen/internal/repositories"
 )
 
 // launchpadRepository represents a single Launchpad git repository
 type launchpadRepository struct {
-	info           RepositoryInfo
+	info           repositories.RepositoryInfo
 	lpProjectGroup string // The project group the repo belongs to
 }
 
 // NewLaunchpadRepository creates a new representation for a Launchpad Git repo
-func NewLaunchpadRepository(project launchpad.ProjectEntry, lpGroup string) Repository {
+func NewLaunchpadRepository(project ProjectEntry, lpGroup string) repositories.Repository {
 	// Create a repository to represent the Launchpad project
 	r := &launchpadRepository{
-		info: RepositoryInfo{
+		info: repositories.RepositoryInfo{
 			Name:          project.Name,
 			DefaultBranch: "",
 			Url:           fmt.Sprintf("https://git.launchpad.net/%s", project.Name),
@@ -28,13 +28,13 @@ func NewLaunchpadRepository(project launchpad.ProjectEntry, lpGroup string) Repo
 }
 
 // Info returns a serialisable representation of the repository
-func (r *launchpadRepository) Info() RepositoryInfo { return r.info }
+func (r *launchpadRepository) Info() repositories.RepositoryInfo { return r.info }
 
 // Process populates the Repository with details of its tags, default branch, and commits
 func (r *launchpadRepository) Process() error {
 	log.Printf("processing launchpad repo: %s/%s\n", r.lpProjectGroup, r.info.Name)
 
-	project := launchpad.NewProject(r.info.Name)
+	project := NewProject(r.info.Name)
 
 	defaultBranch, err := project.DefaultBranch()
 	if err != nil {
@@ -59,7 +59,7 @@ func (r *launchpadRepository) Process() error {
 
 	//Iterate over the tags in the launchpad repo
 	for _, t := range tags {
-		r.info.Releases = append(r.info.Releases, NewRelease(
+		r.info.Releases = append(r.info.Releases, repositories.NewRelease(
 			t.Timestamp.Unix(),
 			t.Name,
 			*t.Timestamp,

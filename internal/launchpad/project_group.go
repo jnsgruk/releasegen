@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"slices"
+	"sync"
 	"time"
+
+	"github.com/jnsgruk/releasegen/internal/config"
+	"github.com/jnsgruk/releasegen/internal/repositories"
 )
 
 // ProjectGroupProjectsResponse is a representation of the response given when querying the
@@ -83,8 +89,59 @@ type ProjectEntry struct {
 	WikiURL                           interface{}   `json:"wiki_url"`
 }
 
-// Projects lists the projects that are part of the specified project group
-func EnumerateProjectGroup(projectGroup string) ([]ProjectEntry, error) {
+// FetchProjectGroupRepos creates a slice of RepositoryInfo types representing the repos
+// associated with a given ProjectGroup in Launchpad.
+func FetchProjectGroupRepos(projectGroup string, lpConfig config.LaunchpadConfig) ([]repositories.RepositoryInfo, error) {
+	projects, err := enumerateProjectGroup(projectGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	out := []repositories.RepositoryInfo{}
+	repos := []repositories.Repository{}
+
+	for _, project := range projects {
+		// Check if the name of the repository is in the ignore list for the team, or if it
+		// specifies any VCS type other than Git
+		if slices.Contains(lpConfig.Ignores, project.Name) || project.Vcs != "Git" {
+			continue
+		}
+
+		// See if we can find a repo in this team with the same name, if the repository has
+		// already been added, skip
+		index := slices.IndexFunc(out, func(repo repositories.RepositoryInfo) bool {
+			return repo.Name == project.Name
+		})
+		if index >= 0 {
+			continue
+		}
+
+		repo := NewLaunchpadRepository(project, projectGroup)
+		repos = append(repos, repo)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := repo.Process()
+			if err != nil {
+				log.Printf("error populating repo %s from launchpad: %v", repo.Info().Name, err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	// Iterate over repos, add only those that have releases to the Team's list of repos
+	for _, r := range repos {
+		if len(r.Info().Releases) > 0 {
+			out = append(out, r.Info())
+		}
+	}
+	return out, nil
+}
+
+// enumerateProjectGroup lists the projects that are part of the specified project group
+func enumerateProjectGroup(projectGroup string) ([]ProjectEntry, error) {
 	url := fmt.Sprintf("https://api.launchpad.net/devel/%s/projects", projectGroup)
 
 	// TODO: Add a retry here?

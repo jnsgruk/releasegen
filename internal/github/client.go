@@ -1,18 +1,20 @@
-package releases
+package github
 
 import (
 	"context"
 	"log"
 
 	"github.com/gofri/go-github-ratelimit/github_ratelimit"
-	"github.com/google/go-github/v54/github"
+	gh "github.com/google/go-github/v54/github"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
-var ghClient *github.Client
+var ghClient *gh.Client
 
-func githubClient() *github.Client {
+// githubClient returns either a new instance of the Github client, or a previously
+// initialised client.
+func githubClient() *gh.Client {
 	if ghClient == nil {
 		log.Println("creating new Github client")
 		ctx := context.Background()
@@ -26,16 +28,18 @@ func githubClient() *github.Client {
 			panic(err)
 		}
 
-		ghClient = github.NewClient(rateLimiter)
+		ghClient = gh.NewClient(rateLimiter)
 	}
 	return ghClient
 }
 
-func parseGithubApiError(err error) string {
-	if _, ok := err.(*github.RateLimitError); ok {
+// parseApiError is used to detect rate limiting errors and more
+// accurately report them in the logs.
+func parseApiError(err error) string {
+	if _, ok := err.(*gh.RateLimitError); ok {
 		return "rate limit exceeded"
 	}
-	if _, ok := err.(*github.AbuseRateLimitError); ok {
+	if _, ok := err.(*gh.AbuseRateLimitError); ok {
 		return "secondary rate limit exceeded"
 	}
 	return err.Error()

@@ -1,4 +1,4 @@
-package releases
+package repositories
 
 import (
 	"regexp"
