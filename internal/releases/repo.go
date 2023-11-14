@@ -17,6 +17,7 @@ type RepositoryInfo struct {
 	IsArchived    bool       `json:"is_archived"`
 	CiActions     []string   `json:"ci_actions"`
 	Charm         *CharmInfo `json:"charm"`
+	Snap          *SnapInfo  `json:"snap"`
 }
 
 // Repository is an interface that provides common methods for different types of repository
@@ -46,24 +47,6 @@ func NewRelease(id int64, version string, ts time.Time, title string, body strin
 		Body:       md.RenderReleaseBody(body),
 		Url:        url,
 		CompareUrl: compareUrl,
-	}
-}
-
-// CharmRelease represents a charm release on CharmHub
-type CharmRelease struct {
-	Track     string `json:"track"`
-	Channel   string `json:"channel"`
-	Revision  int64  `json:"revision"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-// NewCharmRelease is used for constructing a valid CharmRelease
-func NewCharmRelease(track string, channel string, revision int64, ts time.Time) *CharmRelease {
-	return &CharmRelease{
-		Track:     track,
-		Channel:   channel,
-		Revision:  revision,
-		Timestamp: ts.Unix(),
 	}
 }
 

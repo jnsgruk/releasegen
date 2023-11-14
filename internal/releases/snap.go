@@ -9,17 +9,17 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// CharmRelease represents a charm release on CharmHub
-type CharmRelease struct {
+// SnapRelease represents a charm release on Snapcraft.io
+type SnapRelease struct {
 	Track     string `json:"track"`
 	Channel   string `json:"channel"`
 	Revision  int64  `json:"revision"`
 	Timestamp int64  `json:"timestamp"`
 }
 
-// NewCharmRelease is used for constructing a valid CharmRelease
-func NewCharmRelease(track string, channel string, revision int64, ts time.Time) *CharmRelease {
-	return &CharmRelease{
+// NewSnapRelease is used for constructing a valid SnapRelease
+func NewSnapRelease(track string, channel string, revision int64, ts time.Time) *SnapRelease {
+	return &SnapRelease{
 		Track:     track,
 		Channel:   channel,
 		Revision:  revision,
@@ -27,20 +27,27 @@ func NewCharmRelease(track string, channel string, revision int64, ts time.Time)
 	}
 }
 
-// CharmInfo holds all Charm information
-type CharmInfo struct {
-	Name     string          `json:"name"`
-	Url      string          `json:"url"`
-	Releases []*CharmRelease `json:"releases"`
-	Channels []string        `json:"channels"`
-	Tracks   []string        `json:"tracks"`
+// SnapInfo holds all Charm information
+type SnapInfo struct {
+	Name     string         `json:"name"`
+	Url      string         `json:"url"`
+	Releases []*SnapRelease `json:"releases"`
+	Channels []string       `json:"channels"`
+	Tracks   []string       `json:"tracks"`
 }
 
-// FetchCharmInfo fetches the Json representing charm information by quering the Snapcraft API
-func (c *CharmInfo) FetchCharmInfo() (err error) {
+// FetchSnapInfo fetches the Json representing charm information by querying the Snapcraft API
+func (c *SnapInfo) FetchSnapInfo() (err error) {
 	// Query the Snapcraft API to obtain the charm information
-	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map", c.Name)
-	res, err := http.Get(apiUrl)
+	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision", c.Name)
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", apiUrl, nil)
+	// According to: https://api.snapcraft.io/docs/refresh.html
+	// The only valid 'Snap-Device-Series' to date is '16', and the
+	// header must be set in order for the request to be successful.
+	req.Header.Set("Snap-Device-Series", "16")
+	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("cannot query the snapcraft api: %w", err)
 	}
@@ -60,12 +67,12 @@ func (c *CharmInfo) FetchCharmInfo() (err error) {
 	tracks := gjson.Get(jsonBody, "channel-map.#.channel.track").Array()
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTime := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
-	revision := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
+	revision := gjson.Get(jsonBody, "channel-map.#.revision").Array()
 
-	// Create a CharmRelease array with the obtained information
+	// Create a SnapRelease array with the obtained information
 	for index := range tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", releaseTime[index].String())
-		c.Releases = append(c.Releases, NewCharmRelease(
+		c.Releases = append(c.Releases, NewSnapRelease(
 			tracks[index].String(),
 			channels[index].String(),
 			revision[index].Int(),

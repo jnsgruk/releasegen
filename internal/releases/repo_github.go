@@ -133,5 +133,14 @@ func (r *githubRepository) Process() error {
 		r.info.Charm.FetchCharmInfo()
 	}
 
+	// If the README has a Snapcraft Badge, fetch the snap information
+	if snapName := GetSnapName(readmeContent); snapName != "" {
+		r.info.Snap = &SnapInfo{
+			Name: snapName,
+			Url:  fmt.Sprintf("https://snapcraft.io/%s", snapName),
+		}
+		r.info.Snap.FetchSnapInfo()
+	}
+
 	return nil
 }
