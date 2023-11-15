@@ -14,7 +14,6 @@ type RepositoryInfo struct {
 	Url           string                `json:"url"`
 	Releases      []*Release            `json:"releases"`
 	Commits       []*Commit             `json:"commits"`
-	IsArchived    bool                  `json:"is_archived"`
 	CiActions     []string              `json:"ci_actions"`
 	Charm         *stores.StoreArtifact `json:"charm"`
 	Snap          *stores.StoreArtifact `json:"snap"`

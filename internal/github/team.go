@@ -29,7 +29,7 @@ func FetchOrgRepos(org config.GithubOrg) ([]repositories.RepositoryInfo, error) 
 			return nil, fmt.Errorf("error listing repositories for github org '%s': %s", org.Name, desc)
 		}
 
-		repos := []repositories.Repository{}
+		repos := []*githubRepository{}
 
 		// Iterate over repositories, populating release info for each
 		for _, r := range orgRepos {
@@ -59,7 +59,7 @@ func FetchOrgRepos(org config.GithubOrg) ([]repositories.RepositoryInfo, error) 
 
 		// Iterate over repos and add the unarchived ones that have at least one commit
 		for _, r := range repos {
-			if !r.Info().IsArchived && (len(r.Info().Releases) > 0 || len(r.Info().Commits) > 0) {
+			if !r.IsArchived() && (len(r.Info().Releases) > 0 || len(r.Info().Commits) > 0) {
 				out = append(out, r.Info())
 			}
 		}

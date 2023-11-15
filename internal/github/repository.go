@@ -18,9 +18,9 @@ type githubRepository struct {
 }
 
 // NewGithubRepository fetches and parses release information for a single Github repository
-func NewGithubRepository(repo *gh.Repository, team string, org string) repositories.Repository {
+func NewGithubRepository(repo *gh.Repository, team string, org string) *githubRepository {
 	// Create a repository to represent the Github Repo
-	r := &githubRepository{
+	return &githubRepository{
 		info: repositories.RepositoryInfo{
 			Name:          *repo.Name,
 			DefaultBranch: *repo.DefaultBranch,
@@ -29,7 +29,6 @@ func NewGithubRepository(repo *gh.Repository, team string, org string) repositor
 		org:  org,
 		team: team,
 	}
-	return r
 }
 
 // Info returns a serialisable representation of the repository
@@ -39,23 +38,14 @@ func (r *githubRepository) Info() repositories.RepositoryInfo { return r.info }
 func (r *githubRepository) Process() error {
 	log.Printf("processing github repo: %s/%s/%s\n", r.org, r.team, r.info.Name)
 
+	// Skip archived repositories
+	if r.IsArchived() {
+		return nil
+	}
+
 	client := githubClient()
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: 3}
-
-	// Check if the repository is archived
-	repoObject, _, err := client.Repositories.Get(ctx, r.org, r.info.Name)
-	if err != nil {
-		desc := parseApiError(err)
-		return fmt.Errorf(
-			"error while checking archived status for repo '%s/%s/%s': %s",
-			r.org, r.team, r.info.Name, desc,
-		)
-	}
-	//Skip archived repositories
-	if r.info.IsArchived = repoObject.GetArchived(); r.info.IsArchived {
-		return nil
-	}
 
 	// Get the releases from the repo
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.info.Name, opts)
@@ -109,21 +99,62 @@ func (r *githubRepository) Process() error {
 		}
 	}
 
-	// Scrape the README for eventual Charm and CI information
-	readme, _, err := client.Repositories.GetReadme(ctx, r.org, r.info.Name, nil)
+	// Get contents of the README as a string
+	readmeContent, err := r.readme()
+	if err != nil {
+		// The rest of this method depends on the README content, so if we don't get
+		// any README content, we may as well return early
+		return err
+	}
+
+	// Parse contents of README to identify associated Github Workflows, snaps, charms
+	actions, snap, charm := parseReadmeBadges(r.info.Name, readmeContent)
+	r.info.CiActions = actions
+	r.info.Snap = snap
+	r.info.Charm = charm
+
+	return nil
+}
+
+// IsArchived indicates whether or not the repository is marked as archived on Github.
+func (r *githubRepository) IsArchived() bool {
+	client := githubClient()
+	// Check if the repository is archived
+	repoObject, _, err := client.Repositories.Get(context.Background(), r.org, r.info.Name)
 	if err != nil {
 		desc := parseApiError(err)
-		return fmt.Errorf("error getting README for repo '%s/%s/%s': %s", r.org, r.team, r.info.Name, desc)
+		log.Printf(
+			"error while checking archived status for repo '%s/%s/%s': %s",
+			r.org, r.team, r.info.Name, desc,
+		)
+		return false
 	}
+	return repoObject.GetArchived()
+}
 
-	readmeContent, err := readme.GetContent()
+// fetchRepoReadme is a helper function to fetch the README from a Github repository and return
+// its contents as a string.
+func (r *githubRepository) readme() (string, error) {
+	client := githubClient()
+	readme, _, err := client.Repositories.GetReadme(context.Background(), r.org, r.info.Name, nil)
 	if err != nil {
-		return fmt.Errorf("error getting README content for repo '%s/%s/%s'", r.org, r.team, r.info.Name)
+		desc := parseApiError(err)
+		return "", fmt.Errorf("error getting README for repo '%s/%s': %s", r.org, r.info.Name, desc)
 	}
 
+	content, err := readme.GetContent()
+	if err != nil {
+		return "", fmt.Errorf("error getting README content for repo '%s/%s'", r.org, r.info.Name)
+	}
+	return content, nil
+}
+
+// parseReadmeBadges inspects a repos README for badges that indicate association with a given
+// snap, charm or CI workflow, and returns those appropriately.
+func parseReadmeBadges(repo string, readmeContent string) (ciActions []string, snap *stores.StoreArtifact, charm *stores.StoreArtifact) {
 	// Extract CI info from the README
-	if ciActions := repositories.GetCiActions(readmeContent, r.info.Name); len(ciActions) > 0 {
-		r.info.CiActions = ciActions
+	if actions := repositories.GetCiActions(readmeContent, repo); len(actions) > 0 {
+		ciActions = actions
 	}
 
 	// If the README has a Charmhub Badge, fetch the charm information
@@ -132,7 +163,7 @@ func (r *githubRepository) Process() error {
 		if err != nil {
 			log.Printf("failed to fetch charm information for charm: %s", charmName)
 		} else {
-			r.info.Charm = stores.NewStoreArtifact(charmName, charmInfo)
+			charm = stores.NewStoreArtifact(charmName, charmInfo)
 		}
 	}
 
@@ -142,8 +173,8 @@ func (r *githubRepository) Process() error {
 		if err != nil {
 			log.Printf("failed to fetch snap package information for snap: %s", snapName)
 		} else {
-			r.info.Snap = stores.NewStoreArtifact(snapName, snapInfo)
+			snap = stores.NewStoreArtifact(snapName, snapInfo)
 		}
 	}
-	return nil
+	return ciActions, snap, charm
 }
