@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jnsgruk/releasegen/internal/config"
-	"github.com/jnsgruk/releasegen/internal/releases"
+	"github.com/jnsgruk/releasegen/internal/releasegen"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -58,7 +58,7 @@ Homepage: https://github.com/jnsgruk/releasegen
 			log.Fatalln("environment variable RELEASEGEN_TOKEN not set")
 		}
 
-		teams := releases.GenerateReport(conf)
+		teams := releasegen.GenerateReport(conf)
 		teams.Dump()
 	},
 }

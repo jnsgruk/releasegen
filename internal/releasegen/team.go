@@ -1,4 +1,4 @@
-package releases
+package releasegen
 
 import (
 	"fmt"

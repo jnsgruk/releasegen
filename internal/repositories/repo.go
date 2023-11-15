@@ -3,7 +3,6 @@ package repositories
 import (
 	"time"
 
-	"github.com/jnsgruk/releasegen/internal/md"
 	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
@@ -45,7 +44,7 @@ func NewRelease(id int64, version string, ts time.Time, title string, body strin
 		Version:    version,
 		Timestamp:  ts.Unix(),
 		Title:      title,
-		Body:       md.RenderReleaseBody(body),
+		Body:       RenderReleaseBody(body),
 		Url:        url,
 		CompareUrl: compareUrl,
 	}
