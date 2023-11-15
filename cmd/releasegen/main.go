@@ -1,8 +1,9 @@
-package cmd
+package main
 
 import (
+	"fmt"
 	"log"
-	"os"
+	"runtime"
 
 	"github.com/jnsgruk/releasegen/internal/config"
 	"github.com/jnsgruk/releasegen/internal/releasegen"
@@ -10,13 +11,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "releasegen",
-	Short: "releasegen - a utility for enumerating Github and Launchpad releases",
-	Long: `
-releasegen is a utility for enumerating Github and Launchpad releases/tags from 
-specified Github Organisations or Launchpad project groups.
+var (
+	version string = "dev"
+	commit  string = "dev"
+	date    string
+)
+
+var shortDesc = "releasegen - a utility for enumerating Github and Launchpad releases"
+var longDesc string = ` releasegen is a utility for enumerating Github and Launchpad releases/tags
+from specified Github Organisations or Launchpad project groups.
 
 This tool is configured using a single file in one of the three following locations:
 
@@ -37,44 +40,56 @@ For example:
 You can create a Personal Access Token at: https://github.com/settings/tokens
 
 Homepage: https://github.com/jnsgruk/releasegen
-	`,
-	Run: func(cmd *cobra.Command, args []string) {
+`
+
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:          "releasegen",
+	Version:      buildVersion(version, commit, date),
+	Short:        shortDesc,
+	Long:         longDesc,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := viper.ReadInConfig()
 		if err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				log.Fatalln("config file 'releasegen.yaml' not found")
+				return fmt.Errorf("config file 'releasegen.yaml' not found")
 			} else {
-				log.Fatalln("error parsing config file")
+				return fmt.Errorf("error parsing config file")
 			}
 		}
 
 		conf := &config.Config{}
 		err = viper.Unmarshal(conf)
 		if err != nil {
-			log.Fatalf("unable to decode into config struct, %v\n", err)
+			return fmt.Errorf("unable to decode into config struct, %v", err)
 		}
 
 		if viper.Get("token") == nil {
-			log.Fatalln("environment variable RELEASEGEN_TOKEN not set")
+			return fmt.Errorf("environment variable RELEASEGEN_TOKEN not set")
 		}
 
 		teams := releasegen.GenerateReport(conf)
 		teams.Dump()
+		return nil
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-func Execute(version string) {
-	rootCmd.Version = version
-	rootCmd.SetVersionTemplate("releasegen\nversion: {{.Version}}")
-
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+// buildVersion writes a multiline version string from the specified
+// version variables
+func buildVersion(version, commit, date string) string {
+	result := version
+	if commit != "" {
+		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
 	}
+	if date != "" {
+		result = fmt.Sprintf("%s\nbuilt at: %s", result, date)
+	}
+	result = fmt.Sprintf("%s\ngoos: %s\ngoarch: %s", result, runtime.GOOS, runtime.GOARCH)
+	return result
 }
 
-func init() {
+func main() {
 	// Set the default config file name/type
 	viper.SetConfigName("releasegen")
 	viper.SetConfigType("yaml")
@@ -87,4 +102,9 @@ func init() {
 	// Setup environment variable parsing
 	viper.SetEnvPrefix("releasegen")
 	viper.MustBindEnv("token")
+
+	err := rootCmd.Execute()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }
