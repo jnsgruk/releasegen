@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github/v54 v54.0.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	github.com/tidwall/gjson v1.16.0
+	github.com/tidwall/gjson v1.17.0
 	golang.org/x/oauth2 v0.11.0
 )
 
