@@ -10,7 +10,7 @@ import (
 )
 
 // snapBadgeRegexp is used to find a Snap's name in its Snapcraft badge
-var snapBadgeRegexp = regexp.MustCompile(`https://snapcraft.io/(?P<Name>[a-zA-Z0-9_-]+)/badge.svg`)
+var snapBadgeRegexp = regexp.MustCompile(`https://snapcraft.io/(?P<Name>[\w-]+)/badge.svg`)
 
 // GetSnapName tries to parse a snap name from a Snapcraft badge in repo's README
 func GetSnapName(readme string) (name string) {

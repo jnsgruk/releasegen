@@ -10,7 +10,7 @@ import (
 )
 
 // charmBadgeRegexp is used to find a Charm's name in its CharmHub badge
-var charmBadgeRegexp = regexp.MustCompile(`https://charmhub.io/(?P<Name>[a-zA-Z0-9_-]+)/badge.svg`)
+var charmBadgeRegexp = regexp.MustCompile(`https://charmhub.io/(?P<Name>[\w-]+)/badge.svg`)
 
 // GetCharmName parses a charm name from a Charmhub badge in repo's README
 func GetCharmName(readme string) (name string) {

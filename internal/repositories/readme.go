@@ -8,7 +8,7 @@ import (
 )
 
 // ciBadgeRegexp is used to find action in Github CI Badges
-var ciBadgeRegexp = regexp.MustCompile(`!\[.*\]\((?P<Action>https://github.com/.+)/badge.svg\)`)
+var ciBadgeRegexp = regexp.MustCompile(`(?P<Action>https://github.com/[\w-./]+)/badge.svg`)
 
 // prRegexp is used to find Github PR URLs
 var prRegexp = regexp.MustCompile(`(https://github.com/canonical/.+/pull/([0-9]+))`)
