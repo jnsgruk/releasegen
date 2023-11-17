@@ -20,7 +20,7 @@ func GetSnapName(readme string) (name string) {
 // FetchSnapInfo fetches the Json representing charm information by querying the Snapcraft API
 func FetchSnapInfo(name string) (*artifactInfoResult, error) {
 	// Query the Snapcraft API to obtain the charm information
-	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision", name)
+	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url", name)
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
@@ -45,10 +45,12 @@ func FetchSnapInfo(name string) (*artifactInfoResult, error) {
 	}
 
 	jsonBody := string(resBody)
+	fmt.Println()
+	storeUrl := gjson.Get(jsonBody, "snap.store-url").String()
 	tracks := gjson.Get(jsonBody, "channel-map.#.channel.track").Array()
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision").Array()
 
-	return &artifactInfoResult{tracks, channels, releaseTimes, revisions}, nil
+	return &artifactInfoResult{storeUrl, tracks, channels, releaseTimes, revisions}, nil
 }

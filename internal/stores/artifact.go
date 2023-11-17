@@ -1,7 +1,6 @@
 package stores
 
 import (
-	"fmt"
 	"regexp"
 	"slices"
 	"time"
@@ -19,33 +18,33 @@ type StoreArtifact struct {
 }
 
 func NewStoreArtifact(name string, r *artifactInfoResult) *StoreArtifact {
-	snap := &StoreArtifact{
+	artifact := &StoreArtifact{
 		Name: name,
-		Url:  fmt.Sprintf("https://snapcraft.io/%s", name),
+		Url:  r.StoreURL,
 	}
 
-	// Populate the snap's releases, tracks and channels using the info from the store
+	// Populate the artifact's releases, tracks and channels using the info from the store
 	for index := range r.Tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", r.ReleaseTimes[index].String())
 		track := r.Tracks[index].String()
 		channel := r.Channels[index].String()
 
-		snap.Releases = append(snap.Releases, newStoreRelease(
+		artifact.Releases = append(artifact.Releases, newStoreRelease(
 			track,
 			channel,
 			r.Revisions[index].Int(),
 			parsedTime,
 		))
 
-		if !slices.Contains(snap.Tracks, track) {
-			snap.Tracks = append(snap.Tracks, track)
+		if !slices.Contains(artifact.Tracks, track) {
+			artifact.Tracks = append(artifact.Tracks, track)
 		}
 
-		if !slices.Contains(snap.Channels, channel) {
-			snap.Channels = append(snap.Channels, channel)
+		if !slices.Contains(artifact.Channels, channel) {
+			artifact.Channels = append(artifact.Channels, channel)
 		}
 	}
-	return snap
+	return artifact
 }
 
 // storeRelease represents a given release of an artifact in a Canonical Store
@@ -68,6 +67,7 @@ func newStoreRelease(track string, channel string, revision int64, ts time.Time)
 
 // artifactInfoResult is used for storing the raw info fetched about an artifact from the store
 type artifactInfoResult struct {
+	StoreURL     string
 	Tracks       []gjson.Result
 	Channels     []gjson.Result
 	ReleaseTimes []gjson.Result

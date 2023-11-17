@@ -19,7 +19,7 @@ func GetCharmName(readme string) (name string) {
 
 // FetchCharmInfo fetches the Json representing charm information by querying the Charmhub API
 func FetchCharmInfo(name string) (*artifactInfoResult, error) {
-	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map", name)
+	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
 	res, err := http.Get(apiUrl)
 	if err != nil {
 		return nil, fmt.Errorf("cannot query the snapcraft api: %w", err)
@@ -37,10 +37,11 @@ func FetchCharmInfo(name string) (*artifactInfoResult, error) {
 	}
 
 	jsonBody := string(resBody)
+	storeUrl := gjson.Get(jsonBody, "result.store-url").String()
 	tracks := gjson.Get(jsonBody, "channel-map.#.channel.track").Array()
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
 
-	return &artifactInfoResult{tracks, channels, releaseTimes, revisions}, nil
+	return &artifactInfoResult{storeUrl, tracks, channels, releaseTimes, revisions}, nil
 }
