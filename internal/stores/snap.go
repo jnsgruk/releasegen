@@ -4,21 +4,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 
 	"github.com/tidwall/gjson"
 )
 
-// snapBadgeRegexp is used to find a Snap's name in its Snapcraft badge
-var snapBadgeRegexp = regexp.MustCompile(`https://snapcraft.io/(?P<Name>[\w-]+)/badge.svg`)
-
-// GetSnapName tries to parse a snap name from a Snapcraft badge in repo's README
-func GetSnapName(readme string) (name string) {
-	return getArtifactName(readme, snapBadgeRegexp)
-}
-
-// FetchSnapInfo fetches the Json representing charm information by querying the Snapcraft API
-func FetchSnapInfo(name string) (*artifactInfoResult, error) {
+// FetchSnapDetails fetches the Json representing charm information by querying the Snapcraft API
+func FetchSnapDetails(name string) (*artifactDetails, error) {
 	// Query the Snapcraft API to obtain the charm information
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url", name)
 
@@ -45,12 +36,11 @@ func FetchSnapInfo(name string) (*artifactInfoResult, error) {
 	}
 
 	jsonBody := string(resBody)
-	fmt.Println()
 	storeUrl := gjson.Get(jsonBody, "snap.store-url").String()
 	tracks := gjson.Get(jsonBody, "channel-map.#.channel.track").Array()
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision").Array()
 
-	return &artifactInfoResult{storeUrl, tracks, channels, releaseTimes, revisions}, nil
+	return &artifactDetails{storeUrl, tracks, channels, releaseTimes, revisions}, nil
 }

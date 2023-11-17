@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/jnsgruk/releasegen/internal/config"
 	"github.com/jnsgruk/releasegen/internal/releasegen"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -59,7 +58,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		conf := &config.Config{}
+		conf := &releasegen.ReleasegenConfig{}
 		err = viper.Unmarshal(conf)
 		if err != nil {
 			return fmt.Errorf("unable to decode into config struct, %v", err)

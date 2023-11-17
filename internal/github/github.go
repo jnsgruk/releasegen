@@ -12,16 +12,23 @@ import (
 
 var ghClient *gh.Client
 
+// GithubOrgConfig contains fields used in releasegen's config.yaml file to configure
+// its behaviour when generating reports about Github repositories
+type GithubOrgConfig struct {
+	Org          string   `mapstructure:"org"`
+	Teams        []string `mapstructure:"teams"`
+	IgnoredRepos []string `mapstructure:"ignores"`
+}
+
 // githubClient returns either a new instance of the Github client, or a previously
 // initialised client.
 func githubClient() *gh.Client {
 	if ghClient == nil {
 		log.Println("creating new Github client")
-		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: viper.Get("token").(string)},
 		)
-		tc := oauth2.NewClient(ctx, ts)
+		tc := oauth2.NewClient(context.Background(), ts)
 
 		rateLimiter, err := github_ratelimit.NewRateLimitWaiterClient(tc.Transport)
 		if err != nil {
@@ -31,16 +38,4 @@ func githubClient() *gh.Client {
 		ghClient = gh.NewClient(rateLimiter)
 	}
 	return ghClient
-}
-
-// parseApiError is used to detect rate limiting errors and more
-// accurately report them in the logs.
-func parseApiError(err error) string {
-	if _, ok := err.(*gh.RateLimitError); ok {
-		return "rate limit exceeded"
-	}
-	if _, ok := err.(*gh.AbuseRateLimitError); ok {
-		return "secondary rate limit exceeded"
-	}
-	return err.Error()
 }

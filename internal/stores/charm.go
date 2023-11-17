@@ -4,21 +4,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 
 	"github.com/tidwall/gjson"
 )
 
-// charmBadgeRegexp is used to find a Charm's name in its CharmHub badge
-var charmBadgeRegexp = regexp.MustCompile(`https://charmhub.io/(?P<Name>[\w-]+)/badge.svg`)
-
-// GetCharmName parses a charm name from a Charmhub badge in repo's README
-func GetCharmName(readme string) (name string) {
-	return getArtifactName(readme, charmBadgeRegexp)
-}
-
-// FetchCharmInfo fetches the Json representing charm information by querying the Charmhub API
-func FetchCharmInfo(name string) (*artifactInfoResult, error) {
+// FetchCharmDetails fetches the Json representing charm information by querying the Charmhub API
+func FetchCharmDetails(name string) (*artifactDetails, error) {
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
 	res, err := http.Get(apiUrl)
 	if err != nil {
@@ -43,5 +34,5 @@ func FetchCharmInfo(name string) (*artifactInfoResult, error) {
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
 
-	return &artifactInfoResult{storeUrl, tracks, channels, releaseTimes, revisions}, nil
+	return &artifactDetails{storeUrl, tracks, channels, releaseTimes, revisions}, nil
 }

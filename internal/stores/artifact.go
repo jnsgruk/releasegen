@@ -1,24 +1,24 @@
 package stores
 
 import (
-	"regexp"
 	"slices"
 	"time"
 
 	"github.com/tidwall/gjson"
 )
 
-// StoreArtifact holds information about an artifact in a Canonical store (e.g. a snap or charm)
-type StoreArtifact struct {
-	Name     string          `json:"name"`
-	Url      string          `json:"url"`
-	Releases []*storeRelease `json:"releases"`
-	Channels []string        `json:"channels"`
-	Tracks   []string        `json:"tracks"`
+// Artifact holds information about an artifact in a Canonical store (e.g. a snap or charm)
+type Artifact struct {
+	Name     string     `json:"name"`
+	Url      string     `json:"url"`
+	Releases []*Release `json:"releases"`
+	Channels []string   `json:"channels"`
+	Tracks   []string   `json:"tracks"`
 }
 
-func NewStoreArtifact(name string, r *artifactInfoResult) *StoreArtifact {
-	artifact := &StoreArtifact{
+// NewArtifact returns a representation of an artifact with its releases/tracks/channels populated.
+func NewArtifact(name string, r *artifactDetails) *Artifact {
+	artifact := &Artifact{
 		Name: name,
 		Url:  r.StoreURL,
 	}
@@ -29,7 +29,7 @@ func NewStoreArtifact(name string, r *artifactInfoResult) *StoreArtifact {
 		track := r.Tracks[index].String()
 		channel := r.Channels[index].String()
 
-		artifact.Releases = append(artifact.Releases, &storeRelease{
+		artifact.Releases = append(artifact.Releases, &Release{
 			Track:     track,
 			Channel:   channel,
 			Revision:  r.Revisions[index].Int(),
@@ -47,29 +47,19 @@ func NewStoreArtifact(name string, r *artifactInfoResult) *StoreArtifact {
 	return artifact
 }
 
-// storeRelease represents a given release of an artifact in a Canonical Store
-type storeRelease struct {
+// Release represents a given Release of an artifact in a Canonical Store
+type Release struct {
 	Track     string `json:"track"`
 	Channel   string `json:"channel"`
 	Revision  int64  `json:"revision"`
 	Timestamp int64  `json:"timestamp"`
 }
 
-// artifactInfoResult is used for storing the raw info fetched about an artifact from the store
-type artifactInfoResult struct {
+// artifactDetails is used for storing the raw info fetched about an artifact from the store
+type artifactDetails struct {
 	StoreURL     string
 	Tracks       []gjson.Result
 	Channels     []gjson.Result
 	ReleaseTimes []gjson.Result
 	Revisions    []gjson.Result
-}
-
-// getArtifactName tries to parse an artifact name from a store badge in repo's README
-func getArtifactName(readme string, re *regexp.Regexp) (name string) {
-	nameIndex := re.SubexpIndex("Name")
-	matches := re.FindStringSubmatch(readme)
-	if len(matches) > 0 {
-		name = matches[nameIndex]
-	}
-	return name
 }

@@ -6,29 +6,37 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jnsgruk/releasegen/internal/config"
+	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-type ReleaseReport []*TeamInfo
+// ReleaseReport is a representation of the output of releasegen
+type ReleaseReport []*TeamDetails
 
 // GenerateReport takes a given config, and generates the output JSON
-func GenerateReport(conf *config.Config) ReleaseReport {
+func GenerateReport(conf *ReleasegenConfig) ReleaseReport {
 	teams := ReleaseReport{}
 
 	// Iterate over the teams specified in the config file
 	for _, t := range conf.Teams {
-		team := NewTeam(*t)
-		teams = append(teams, team.Info())
+		team := &Team{
+			Details: &TeamDetails{
+				Name:  t.Name,
+				Repos: []repos.RepoDetails{},
+			},
+			config: *t,
+		}
+		teams = append(teams, team.Details)
 
 		err := team.Process()
 		if err != nil {
-			log.Printf("error processing team '%s': %v", team.Info().Name, err)
+			log.Printf("error processing team '%s': %v", team.Details.Name, err)
 		}
 	}
 
 	return teams
 }
 
+// Dump is used to create a pretty-printed JSON version of a ReleaseReport
 func (r ReleaseReport) Dump() {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
