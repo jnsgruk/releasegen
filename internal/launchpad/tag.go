@@ -14,9 +14,6 @@ type Tag struct {
 	project string
 }
 
-// NewTag returns a new Tag based on the name of a tag
-func NewTag(project string, tag string) *Tag { return &Tag{Name: tag, project: project} }
-
 // Process populates the tag with details of the relevant commit
 func (t *Tag) Process() error {
 	// Construct a URL for the project commit page, including a tag if specified

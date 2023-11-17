@@ -10,19 +10,11 @@ import (
 
 // Project is a representation of a Launchpad project
 type Project struct {
-	name          string
+	Name          string
 	defaultBranch string
 	tags          []*Tag
 
 	projectPage *goquery.Document
-}
-
-// Name reports the name of the Launchpad project
-func (p *Project) Name() string { return p.name }
-
-// NewProject returns a new Launchpad Project
-func NewProject(name string) *Project {
-	return &Project{name: name}
 }
 
 // Tags returns a list of tags for a Launchpad project
@@ -61,7 +53,7 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 	})
 
 	if branch == "" {
-		return "", fmt.Errorf("could not parse default branch for: %s", p.Name())
+		return "", fmt.Errorf("could not parse default branch for: %s", p.Name)
 	}
 
 	p.defaultBranch = branch
@@ -71,7 +63,7 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 // GetNewCommits parses the git log page for a Launchpad project and returns the number of
 // commits that have happened on the default branch since the last tag
 func (p *Project) NewCommits() (int, error) {
-	url := fmt.Sprintf("https://git.launchpad.net/%s/log", p.Name())
+	url := fmt.Sprintf("https://git.launchpad.net/%s/log", p.Name)
 
 	doc, err := parseWebpage(url)
 	if err != nil {
@@ -129,7 +121,7 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 				return
 			}
 
-			tag := NewTag(p.name, tagName)
+			tag := &Tag{project: p.Name, Name: tagName}
 			if err := tag.Process(); err != nil {
 				return
 			}
@@ -144,10 +136,10 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 
 func (p *Project) fetchProjectPage() error {
 	if p.projectPage == nil {
-		projectUrl := fmt.Sprintf("https://git.launchpad.net/%s", p.Name())
+		projectUrl := fmt.Sprintf("https://git.launchpad.net/%s", p.Name)
 		page, err := parseWebpage(projectUrl)
 		if err != nil {
-			return fmt.Errorf("could not fetch launchpad project page %s: %v", p.Name(), err)
+			return fmt.Errorf("could not fetch launchpad project page %s: %v", p.Name, err)
 		}
 		p.projectPage = page
 	}

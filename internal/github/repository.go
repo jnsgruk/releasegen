@@ -57,15 +57,15 @@ func (r *githubRepository) Process() error {
 	} else if len(releases) > 0 {
 		// Iterate over the releases in the Github repo
 		for _, rel := range releases {
-			r.info.Releases = append(r.info.Releases, repositories.NewRelease(
-				rel.GetID(),
-				rel.GetTagName(),
-				rel.CreatedAt.Time,
-				rel.GetName(),
-				rel.GetBody(),
-				rel.GetHTMLURL(),
-				fmt.Sprintf("%s/compare/%s...%s", r.info.Url, rel.GetTagName(), r.info.DefaultBranch),
-			))
+			r.info.Releases = append(r.info.Releases, &repositories.Release{
+				Id:         rel.GetID(),
+				Version:    rel.GetTagName(),
+				Timestamp:  rel.CreatedAt.Time.Unix(),
+				Title:      rel.GetName(),
+				Body:       repositories.RenderReleaseBody(rel.GetBody()),
+				Url:        rel.GetHTMLURL(),
+				CompareUrl: fmt.Sprintf("%s/compare/%s...%s", r.info.Url, rel.GetTagName(), r.info.DefaultBranch),
+			})
 		}
 
 		// Add the commit delta between last release and default branch
@@ -89,13 +89,13 @@ func (r *githubRepository) Process() error {
 		if err == nil {
 			com := commits[0]
 			ts := com.GetCommit().GetAuthor().GetDate()
-			r.info.Commits = append(r.info.Commits, repositories.NewCommit(
-				com.GetSHA(),
-				com.GetCommit().GetAuthor().GetName(),
-				*ts.GetTime(),
-				com.GetCommit().GetMessage(),
-				com.GetHTMLURL(),
-			))
+			r.info.Commits = append(r.info.Commits, &repositories.Commit{
+				Sha:       com.GetSHA(),
+				Author:    com.GetCommit().GetAuthor().GetName(),
+				Timestamp: ts.GetTime().Unix(),
+				Message:   com.GetCommit().GetMessage(),
+				Url:       com.GetHTMLURL(),
+			})
 		}
 	}
 

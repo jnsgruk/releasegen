@@ -29,12 +29,12 @@ func NewStoreArtifact(name string, r *artifactInfoResult) *StoreArtifact {
 		track := r.Tracks[index].String()
 		channel := r.Channels[index].String()
 
-		artifact.Releases = append(artifact.Releases, newStoreRelease(
-			track,
-			channel,
-			r.Revisions[index].Int(),
-			parsedTime,
-		))
+		artifact.Releases = append(artifact.Releases, &storeRelease{
+			Track:     track,
+			Channel:   channel,
+			Revision:  r.Revisions[index].Int(),
+			Timestamp: parsedTime.Unix(),
+		})
 
 		if !slices.Contains(artifact.Tracks, track) {
 			artifact.Tracks = append(artifact.Tracks, track)
@@ -53,16 +53,6 @@ type storeRelease struct {
 	Channel   string `json:"channel"`
 	Revision  int64  `json:"revision"`
 	Timestamp int64  `json:"timestamp"`
-}
-
-// newStoreRelease is used for constructing a valid StoreRelease
-func newStoreRelease(track string, channel string, revision int64, ts time.Time) *storeRelease {
-	return &storeRelease{
-		Track:     track,
-		Channel:   channel,
-		Revision:  revision,
-		Timestamp: ts.Unix(),
-	}
 }
 
 // artifactInfoResult is used for storing the raw info fetched about an artifact from the store

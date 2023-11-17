@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"time"
-
 	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
@@ -36,19 +34,6 @@ type Release struct {
 	CompareUrl string `json:"compare_url"`
 }
 
-// NewRelease is used for constructing a valid Release
-func NewRelease(id int64, version string, ts time.Time, title string, body string, url string, compareUrl string) *Release {
-	return &Release{
-		Id:         id,
-		Version:    version,
-		Timestamp:  ts.Unix(),
-		Title:      title,
-		Body:       RenderReleaseBody(body),
-		Url:        url,
-		CompareUrl: compareUrl,
-	}
-}
-
 // Commit represents a GitHub commit
 type Commit struct {
 	Sha       string `json:"sha"`
@@ -56,15 +41,4 @@ type Commit struct {
 	Timestamp int64  `json:"timestamp"`
 	Message   string `json:"message"`
 	Url       string `json:"url"`
-}
-
-// NewCommit constructs a valid Commit
-func NewCommit(sha string, author string, ts time.Time, message string, url string) *Commit {
-	return &Commit{
-		Sha:       sha,
-		Author:    author,
-		Timestamp: ts.Unix(),
-		Message:   message,
-		Url:       url,
-	}
 }

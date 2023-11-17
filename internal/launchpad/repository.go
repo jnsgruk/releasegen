@@ -34,7 +34,7 @@ func (r *launchpadRepository) Info() repositories.RepositoryInfo { return r.info
 func (r *launchpadRepository) Process() error {
 	log.Printf("processing launchpad repo: %s/%s\n", r.lpProjectGroup, r.info.Name)
 
-	project := NewProject(r.info.Name)
+	project := &Project{Name: r.info.Name}
 
 	defaultBranch, err := project.DefaultBranch()
 	if err != nil {
@@ -59,15 +59,15 @@ func (r *launchpadRepository) Process() error {
 
 	//Iterate over the tags in the launchpad repo
 	for _, t := range tags {
-		r.info.Releases = append(r.info.Releases, repositories.NewRelease(
-			t.Timestamp.Unix(),
-			t.Name,
-			*t.Timestamp,
-			t.Name,
-			"",
-			fmt.Sprintf("%s/tag/?h=%s", r.info.Url, t.Name),
-			fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.info.Url, t.Commit, r.info.DefaultBranch),
-		))
+		r.info.Releases = append(r.info.Releases, &repositories.Release{
+			Id:         t.Timestamp.Unix(),
+			Version:    t.Name,
+			Timestamp:  t.Timestamp.Unix(),
+			Title:      t.Name,
+			Body:       "",
+			Url:        fmt.Sprintf("%s/tag/?h=%s", r.info.Url, t.Name),
+			CompareUrl: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.info.Url, t.Commit, r.info.DefaultBranch),
+		})
 	}
 	return err
 }
