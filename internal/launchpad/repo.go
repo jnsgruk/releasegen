@@ -11,6 +11,7 @@ import (
 type Repository struct {
 	Details      repos.RepoDetails
 	projectGroup string
+	readme       *repos.Readme
 }
 
 // Process populates the Repository with details of its tags, default branch, and commits
@@ -52,5 +53,18 @@ func (r *Repository) Process() error {
 			CompareUrl: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.Url, t.Commit, r.Details.DefaultBranch),
 		})
 	}
+
+	// Get contents of the README as a string
+	readmeContent, err := project.fetchReadmeContent()
+	if err != nil {
+		// The rest of this method depends on the README content, so if we don't get
+		// any README content, we may as well return early
+		return err
+	}
+
+	// Parse contents of README to identify associated snaps and charms
+	r.readme = &repos.Readme{Body: readmeContent}
+	r.Details.Snap = r.readme.LinkedSnap()
+	r.Details.Charm = r.readme.LinkedCharm()
 	return err
 }

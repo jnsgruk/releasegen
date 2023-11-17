@@ -2,6 +2,7 @@ package launchpad
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -147,6 +148,28 @@ func (p *Project) fetchProjectPage() error {
 		p.projectPage = page
 	}
 	return nil
+}
+
+// fetchReadmeContent fetches the content of a README.md for a project if it has one
+func (p *Project) fetchReadmeContent() (string, error) {
+	url := fmt.Sprintf("https://git.launchpad.net/%s/plain/README.md", p.Name)
+	res, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return "", fmt.Errorf("unexpected status code %d fetching %s", res.StatusCode, url)
+	}
+
+	// Parse the useful information from the response
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("cannot read response body while fetching %s", url)
+	}
+
+	return string(resBody), nil
 }
 
 // Tag is a representation of a git Tag in Launchpad
