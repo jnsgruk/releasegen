@@ -148,7 +148,7 @@ func (r *Repository) processCommits(ctx context.Context) error {
 	// If there are no releases, get the latest commit instead.
 	commits, _, err := r.client.Repositories.ListCommits(ctx, r.org, r.Details.Name, opts)
 	if err != nil {
-		return errors.New("error listing commits for repositroy")
+		return errors.New("error listing commits for repository")
 	}
 
 	// Iterate over the commits and append them to r.Details.Commits

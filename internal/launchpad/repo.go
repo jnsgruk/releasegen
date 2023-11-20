@@ -10,28 +10,39 @@ import (
 // Repository represents a single Launchpad git Repository.
 type Repository struct {
 	Details      repos.RepoDetails
+	project      *Project
 	projectGroup string
 }
 
 // Process populates the Repository with details of its tags, default branch, and commits.
 func (r *Repository) Process(ctx context.Context) error {
-	project := &Project{Name: r.Details.Name}
+	r.project = &Project{Name: r.Details.Name}
 
-	defaultBranch, err := project.DefaultBranch(ctx)
+	// Iterate over the releases in the Launchpad repo and add them to our repository's details.
+	err := r.processReleases(ctx)
 	if err != nil {
 		return err
 	}
 
-	r.Details.DefaultBranch = defaultBranch
-
-	newCommits, err := project.NewCommits(ctx)
+	// Calculate the number of commits since the latest release.
+	err = r.processCommitsSinceRelease(ctx)
 	if err != nil {
 		return err
 	}
 
-	r.Details.NewCommits = newCommits
+	// Populate the repository's README from Launchpad, parse any linked snaps, charms or CI actions.
+	err = r.parseReadme(ctx, r.project)
+	if err != nil {
+		return err
+	}
 
-	tags, err := project.Tags(ctx)
+	return err
+}
+
+// processReleases fetches a repository's tags from Launchpad, then populates r.Details.Releases
+// with the information in the relevant format for releasegen.
+func (r *Repository) processReleases(ctx context.Context) error {
+	tags, err := r.project.Tags(ctx)
 	if err != nil {
 		return err
 	}
@@ -40,7 +51,12 @@ func (r *Repository) Process(ctx context.Context) error {
 		return nil
 	}
 
-	// Iterate over the tags in the launchpad repo.
+	err = r.processDefaultBranch(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Iterate over the tags in the Launchpad repo.
 	for _, t := range tags {
 		r.Details.Releases = append(r.Details.Releases, &repos.Release{
 			ID:         t.Timestamp.Unix(),
@@ -53,13 +69,33 @@ func (r *Repository) Process(ctx context.Context) error {
 		})
 	}
 
-	// Populate the repository's README from Launchpad, parse any linked snaps, charms or CI actions.
-	err = r.parseReadme(ctx, project)
+	return nil
+}
+
+// processDefaultBranch gets the name of the default branch in the Launchpad repo and populates it
+// on the repository.
+func (r *Repository) processDefaultBranch(ctx context.Context) error {
+	defaultBranch, err := r.project.DefaultBranch(ctx)
 	if err != nil {
 		return err
 	}
 
-	return err
+	r.Details.DefaultBranch = defaultBranch
+
+	return nil
+}
+
+// processCommitsSinceRelease calculates the number of commits that have occurred on the default
+// branch of the repository since the last release, and populates the information in r.Details.
+func (r *Repository) processCommitsSinceRelease(ctx context.Context) error {
+	newCommits, err := r.project.NewCommits(ctx)
+	if err != nil {
+		return err
+	}
+
+	r.Details.NewCommits = newCommits
+
+	return nil
 }
 
 // parseReadme is a helper function to fetch the README from a Launchpad repository and return

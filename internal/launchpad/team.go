@@ -13,30 +13,40 @@ import (
 // FetchProjectGroupRepos creates a slice of RepoDetails types representing the repos
 // associated with a given ProjectGroup in Launchpad.
 func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDetails, error) {
-	ctx := context.Background()
+	pgRepos := []repos.RepoDetails{}
 
-	projects, err := enumerateProjectGroup(ctx, projectGroup)
+	lpRepos, err := getProjectGroupRepos(projectGroup, config, &pgRepos)
 	if err != nil {
-		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
+		return nil, err
+	}
+
+	// Iterate over repos, add only those that have releases to the Team's list of repos
+	for _, r := range lpRepos {
+		if len(r.Details.Releases) > 0 {
+			pgRepos = append(pgRepos, r.Details)
+		}
+	}
+
+	return pgRepos, nil
+}
+
+// getProjectGroupRepos fetches information about repositories from Launchpad and returns it as
+// a slice of structs in the right format for releasegen.
+func getProjectGroupRepos(pg string, config Config, pgRepos *[]repos.RepoDetails) ([]*Repository, error) {
+	ctx := context.Background()
+	lpRepos := []*Repository{}
+
+	projects, err := enumerateProjectGroup(ctx, pg)
+	if err != nil {
+		return nil, fmt.Errorf("error enumerating project group '%s': %w", pg, err)
 	}
 
 	var wg sync.WaitGroup
 
-	lpRepos := []*Repository{}
-	out := []repos.RepoDetails{}
-
 	for _, project := range projects {
 		p := project
 		// Check if the name of the repository is in the ignore list for the team
-		if slices.Contains(config.IgnoredRepos, p) {
-			continue
-		}
-
-		// See if we can find a repo in this team with the same name, if yes then skip
-		index := slices.IndexFunc(out, func(repo repos.RepoDetails) bool {
-			return repo.Name == p
-		})
-		if index >= 0 {
+		if slices.Contains(config.IgnoredRepos, p) || repos.RepoInSlice(*pgRepos, p) {
 			continue
 		}
 
@@ -47,7 +57,7 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 				DefaultBranch: "",
 				URL:           fmt.Sprintf("https://git.launchpad.net/%s", p),
 			},
-			projectGroup: projectGroup,
+			projectGroup: pg,
 		}
 		lpRepos = append(lpRepos, repo)
 
@@ -55,7 +65,6 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 
 		go func() {
 			defer wg.Done()
-
 			log.Printf("processing launchpad repo: %s/%s\n", repo.projectGroup, repo.Details.Name)
 
 			err := repo.Process(ctx)
@@ -67,12 +76,5 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 
 	wg.Wait()
 
-	// Iterate over repos, add only those that have releases to the Team's list of repos
-	for _, r := range lpRepos {
-		if len(r.Details.Releases) > 0 {
-			out = append(out, r.Details)
-		}
-	}
-
-	return out, nil
+	return lpRepos, nil
 }
