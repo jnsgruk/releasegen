@@ -47,7 +47,7 @@ func FetchOrgRepos(org OrgConfig) (out []repos.RepoDetails, err error) {
 				Details: repos.RepoDetails{
 					Name:          *r.Name,
 					DefaultBranch: *r.DefaultBranch,
-					Url:           *r.HTMLURL,
+					URL:           *r.HTMLURL,
 				},
 				org:  org.Org,
 				team: team,
@@ -60,7 +60,7 @@ func FetchOrgRepos(org OrgConfig) (out []repos.RepoDetails, err error) {
 			}
 		}
 
-		// Iterate over ghRepos and add the unarchived ones that have at least one commit
+		// Iterate over ghRepos and add the unarchived ones that have at least one commit.
 		for _, r := range ghRepos {
 			if len(r.Details.Releases) > 0 || len(r.Details.Commits) > 0 {
 				out = append(out, r.Details)

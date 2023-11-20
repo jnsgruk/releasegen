@@ -10,29 +10,29 @@ import (
 // Artifact holds information about an artifact in a Canonical store (e.g. a snap or charm).
 type Artifact struct {
 	Name     string     `json:"name"`
-	Url      string     `json:"url"`
+	URL      string     `json:"url"`
 	Releases []*Release `json:"releases"`
 	Channels []string   `json:"channels"`
 	Tracks   []string   `json:"tracks"`
 }
 
 // NewArtifact returns a representation of an artifact with its releases/tracks/channels populated.
-func NewArtifact(name string, r *artifactDetails) *Artifact {
+func NewArtifact(name string, details *ArtifactDetails) *Artifact {
 	artifact := &Artifact{
 		Name: name,
-		Url:  r.StoreURL,
+		URL:  details.StoreURL,
 	}
 
 	// Populate the artifact's releases, tracks and channels using the info from the store.
-	for index := range r.Tracks {
-		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", r.ReleaseTimes[index].String())
-		track := r.Tracks[index].String()
-		channel := r.Channels[index].String()
+	for index := range details.Tracks {
+		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", details.ReleaseTimes[index].String())
+		track := details.Tracks[index].String()
+		channel := details.Channels[index].String()
 
 		artifact.Releases = append(artifact.Releases, &Release{
 			Track:     track,
 			Channel:   channel,
-			Revision:  r.Revisions[index].Int(),
+			Revision:  details.Revisions[index].Int(),
 			Timestamp: parsedTime.Unix(),
 		})
 
@@ -57,7 +57,7 @@ type Release struct {
 }
 
 // ArtifactDetails is used for storing the raw info fetched about an artifact from the store.
-type artifactDetails struct {
+type ArtifactDetails struct {
 	StoreURL     string
 	Tracks       []gjson.Result
 	Channels     []gjson.Result

@@ -52,13 +52,13 @@ func (r *Repository) Process() error {
 		// Iterate over the releases in the Github repo.
 		for _, rel := range releases {
 			r.Details.Releases = append(r.Details.Releases, &repos.Release{
-				Id:         rel.GetID(),
+				ID:         rel.GetID(),
 				Version:    rel.GetTagName(),
 				Timestamp:  rel.CreatedAt.Time.Unix(),
 				Title:      rel.GetName(),
 				Body:       renderReleaseBody(rel.GetBody()),
-				Url:        rel.GetHTMLURL(),
-				CompareUrl: fmt.Sprintf("%s/compare/%s...%s", r.Details.Url, rel.GetTagName(), r.Details.DefaultBranch),
+				URL:        rel.GetHTMLURL(),
+				CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.Details.DefaultBranch),
 			})
 		}
 
@@ -83,7 +83,7 @@ func (r *Repository) Process() error {
 				Author:    com.GetCommit().GetAuthor().GetName(),
 				Timestamp: ts.GetTime().Unix(),
 				Message:   com.GetCommit().GetMessage(),
-				Url:       com.GetHTMLURL(),
+				URL:       com.GetHTMLURL(),
 			})
 		}
 	}

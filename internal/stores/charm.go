@@ -29,11 +29,11 @@ func FetchCharmDetails(name string) (*artifactDetails, error) {
 	}
 
 	jsonBody := string(resBody)
-	storeUrl := gjson.Get(jsonBody, "result.store-url").String()
+	storeURL := gjson.Get(jsonBody, "result.store-url").String()
 	tracks := gjson.Get(jsonBody, "channel-map.#.channel.track").Array()
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
 
-	return &artifactDetails{storeUrl, tracks, channels, releaseTimes, revisions}, nil
+	return &ArtifactDetails{storeURL, tracks, channels, releaseTimes, revisions}, nil
 }

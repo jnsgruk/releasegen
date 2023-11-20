@@ -46,13 +46,13 @@ func (r *Repository) Process() error {
 	// Iterate over the tags in the launchpad repo.
 	for _, t := range tags {
 		r.Details.Releases = append(r.Details.Releases, &repos.Release{
-			Id:         t.Timestamp.Unix(),
+			ID:         t.Timestamp.Unix(),
 			Version:    t.Name,
 			Timestamp:  t.Timestamp.Unix(),
 			Title:      t.Name,
 			Body:       "",
-			Url:        fmt.Sprintf("%s/tag/?h=%s", r.Details.Url, t.Name),
-			CompareUrl: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.Url, t.Commit, r.Details.DefaultBranch),
+			URL:        fmt.Sprintf("%s/tag/?h=%s", r.Details.URL, t.Name),
+			CompareURL: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.URL, t.Commit, r.Details.DefaultBranch),
 		})
 	}
 
