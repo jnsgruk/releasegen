@@ -177,7 +177,7 @@ func (p *Project) fetchProjectPage() error {
 // fetchReadmeContent fetches the content of a README.md for a project if it has one.
 func (p *Project) fetchReadmeContent() (string, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/plain/README.md", p.Name)
-	client := &http.Client{}
+	client := &http.Client{Timeout: launchpadTimeout}
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 
 	res, err := client.Do(req)
@@ -239,7 +239,7 @@ func (t *Tag) Process() error {
 
 // parseWebpage fetches a URL and returns a goquery.Document for scraping.
 func parseWebpage(url string) (*goquery.Document, error) {
-	client := &http.Client{}
+	client := &http.Client{Timeout: launchpadTimeout}
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 
 	res, err := client.Do(req)

@@ -12,6 +12,8 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
+const githubReleasesPerRepo = 3
+
 var (
 	// prRegexp is used to find Github PR URLs in blocks of Markdown/HTML.
 	prRegexp = regexp.MustCompile(`(https://github.com/canonical/.+/pull/([0-9]+))`)
@@ -40,7 +42,7 @@ func (r *Repository) Process() error {
 
 	client := githubClient()
 	ctx := context.Background()
-	opts := &gh.ListOptions{PerPage: 3}
+	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
 
 	// Get the releases from the repo.
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.Details.Name, opts)

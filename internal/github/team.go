@@ -10,12 +10,14 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
+const githubPerPage = 1000
+
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
 // owned by the specified teams in the Github org.
 func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	client := githubClient()
 	ctx := context.Background()
-	opts := &gh.ListOptions{PerPage: 1000}
+	opts := &gh.ListOptions{PerPage: githubPerPage}
 	out := []repos.RepoDetails{}
 
 	// Iterate over the Github Teams, listing repos for each.

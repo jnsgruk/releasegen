@@ -11,6 +11,8 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+const launchpadTimeout = 5 * time.Second
+
 var errEnumerateProjectGroup = errors.New("error enumerating project group")
 
 // enumerateProjectGroupError builds a wrapped error that might occur when enumerating a group.
@@ -29,7 +31,7 @@ type Config struct {
 func enumerateProjectGroup(projectGroup string) ([]string, error) {
 	url := fmt.Sprintf("https://api.launchpad.net/devel/%s/projects", projectGroup)
 
-	client := http.Client{Timeout: time.Second * 5}
+	client := http.Client{Timeout: launchpadTimeout}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
