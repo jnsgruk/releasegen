@@ -57,6 +57,7 @@ var rootCmd = &cobra.Command{
 			if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 				return errors.New("no config file found, see 'releasegen --help' for details")
 			}
+
 			return errors.New("error parsing releasegen config file")
 		}
 
