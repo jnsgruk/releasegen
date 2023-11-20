@@ -7,13 +7,8 @@ on:
 
 jobs:
   binaries:
-    name: Goreleaser release
+    name: Build and Release releasegen
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    container:
-      image: docker.io/goreleaser/goreleaser-cross:v1.19.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -25,17 +20,20 @@ jobs:
         with:
           go-version-file: "go.mod"
 
-      - name: Fetch all tags
-        run: git fetch --force --tags
+      - name: Setup goreleaser
+        run: |
+          sudo snap install --classic goreleaser
 
-      - name: Run Goreleaser
-        run: goreleaser release --rm-dist --debug
+      - name: Release releasegen
+        id: build
+        run: |
+          goreleaser release --debug --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Archive generated artifacts
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v3
         with:
-          name: canonipulse-dist
+          name: releasegen-dist
           if-no-files-found: error
-          path: |
-            dist
-            !dist/*.txt
+          path: dist
