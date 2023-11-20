@@ -47,5 +47,6 @@ func (r ReleaseReport) Dump() {
 		log.Fatalln("unable to encode report to JSON")
 	}
 
+	//nolint:forbidigo
 	fmt.Println(buffer.String())
 }

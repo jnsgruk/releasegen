@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+//nolint:gochecknoglobals
 var (
 	version = "dev"
 	commit  = "dev"
@@ -44,41 +45,6 @@ Homepage: https://github.com/jnsgruk/releasegen
 `
 )
 
-// rootCmd represents the base command when called without any subcommands.
-var rootCmd = &cobra.Command{
-	Use:          "releasegen",
-	Version:      buildVersion(version, commit, date),
-	Short:        shortDesc,
-	Long:         longDesc,
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := viper.ReadInConfig()
-		if err != nil {
-			if errors.As(err, &viper.ConfigFileNotFoundError{}) {
-				return errors.New("no config file found, see 'releasegen --help' for details")
-			}
-
-			return errors.New("error parsing releasegen config file")
-		}
-
-		conf := &releasegen.Config{}
-
-		err = viper.Unmarshal(conf)
-		if err != nil {
-			return errors.New("error parsing releasegen config file")
-		}
-
-		if viper.Get("token") == nil {
-			return errors.New("environment variable RELEASEGEN_TOKEN not set")
-		}
-
-		teams := releasegen.GenerateReport(conf)
-		teams.Dump()
-
-		return nil
-	},
-}
-
 // buildVersion writes a multiline version string from the specified version variables.
 func buildVersion(version, commit, date string) string {
 	result := version
@@ -109,6 +75,40 @@ func main() {
 	// Setup environment variable parsing.
 	viper.SetEnvPrefix("releasegen")
 	viper.MustBindEnv("token")
+
+	rootCmd := &cobra.Command{
+		Use:          "releasegen",
+		Version:      buildVersion(version, commit, date),
+		Short:        shortDesc,
+		Long:         longDesc,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := viper.ReadInConfig()
+			if err != nil {
+				if errors.As(err, &viper.ConfigFileNotFoundError{}) {
+					return errors.New("no config file found, see 'releasegen --help' for details")
+				}
+
+				return errors.New("error parsing releasegen config file")
+			}
+
+			conf := &releasegen.Config{}
+
+			err = viper.Unmarshal(conf)
+			if err != nil {
+				return errors.New("error parsing releasegen config file")
+			}
+
+			if viper.Get("token") == nil {
+				return errors.New("environment variable RELEASEGEN_TOKEN not set")
+			}
+
+			teams := releasegen.GenerateReport(conf)
+			teams.Dump()
+
+			return nil
+		},
+	}
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalln(err.Error())

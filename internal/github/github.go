@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/gofri/go-github-ratelimit/github_ratelimit"
+	ghrl "github.com/gofri/go-github-ratelimit/github_ratelimit"
 	gh "github.com/google/go-github/v54/github"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -29,7 +29,7 @@ func githubClient() *gh.Client {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: viper.GetString("token")})
 		tc := oauth2.NewClient(context.Background(), ts)
 
-		rateLimiter, err := github_ratelimit.NewRateLimitWaiterClient(tc.Transport)
+		rateLimiter, err := ghrl.NewRateLimitWaiterClient(tc.Transport)
 		if err != nil {
 			panic(err)
 		}
