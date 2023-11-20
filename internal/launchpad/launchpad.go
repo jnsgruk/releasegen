@@ -26,7 +26,7 @@ type Config struct {
 }
 
 // enumerateProjectGroup lists the projects that are part of the specified project group.
-func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
+func enumerateProjectGroup(projectGroup string) ([]string, error) {
 	url := fmt.Sprintf("https://api.launchpad.net/devel/%s/projects", projectGroup)
 
 	client := http.Client{Timeout: time.Second * 5}

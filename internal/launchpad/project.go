@@ -32,14 +32,14 @@ type Project struct {
 }
 
 // Tags returns a list of tags for a Launchpad project.
-func (p *Project) Tags() (tags []*Tag, err error) {
+func (p *Project) Tags() ([]*Tag, error) {
 	// If we've already fetched the tags on this run, then return them.
 	if len(p.tags) > 0 {
 		return p.tags, nil
 	}
 
 	// Otherwise fetch the tags from launchpad.
-	tags, err = p.fetchTags()
+	tags, err := p.fetchTags()
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +48,18 @@ func (p *Project) Tags() (tags []*Tag, err error) {
 }
 
 // DefaultBranch returns the default VCS branch for a Launchpad project.
-func (p *Project) DefaultBranch() (branch string, err error) {
+func (p *Project) DefaultBranch() (string, error) {
 	// If we've already populated the default branch, just return it.
 	if p.defaultBranch != "" {
 		return p.defaultBranch, nil
 	}
 
 	// Make sure the Project page data is present.
-	if err = p.fetchProjectPage(); err != nil {
+	if err := p.fetchProjectPage(); err != nil {
 		return "", err
 	}
+
+	var branch string
 
 	// Find an option element with the selected attribute.
 	// Launchpad Git pages only contain one option element for selecting branch, the selected
@@ -99,9 +101,9 @@ func (p *Project) NewCommits() (int, error) {
 }
 
 // fetchTags scrapes the launchpad project repo page for a list of git tags.
-func (p *Project) fetchTags() (tags []*Tag, err error) {
+func (p *Project) fetchTags() ([]*Tag, error) {
 	// Populate the project with a scrapable version of its VCS page if not already fetched.
-	if err = p.fetchProjectPage(); err != nil {
+	if err := p.fetchProjectPage(); err != nil {
 		return nil, err
 	}
 
@@ -109,6 +111,8 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 	tagRowHeader := p.projectPage.Find("tr.nohover").FilterFunction(func(_ int, s *goquery.Selection) bool {
 		return s.Text() == "TagDownloadAuthorAge"
 	})
+
+	tags := []*Tag{}
 
 	tagRowHeader.NextUntil("tr.nohover").EachWithBreak(func(_ int, row *goquery.Selection) bool {
 		// Only get the first three tags.

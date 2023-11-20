@@ -12,10 +12,11 @@ import (
 
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
 // owned by the specified teams in the Github org.
-func FetchOrgRepos(org OrgConfig) (out []repos.RepoDetails, err error) {
+func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	client := githubClient()
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: 1000}
+	out := []repos.RepoDetails{}
 
 	// Iterate over the Github Teams, listing repos for each.
 	for _, team := range org.Teams {

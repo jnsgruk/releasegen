@@ -21,8 +21,9 @@ type Readme struct {
 }
 
 // GithubActions tries to extract Github Actions Badges from the README.
-func (r *Readme) GithubActions() (actions []string) {
+func (r *Readme) GithubActions() []string {
 	// Parse the CI actions.
+	actions := []string{}
 	actionIndex := ciBadgeRegexp.SubexpIndex("Action")
 	matches := ciBadgeRegexp.FindAllStringSubmatch(r.Body, -1)
 
@@ -37,14 +38,12 @@ func (r *Readme) GithubActions() (actions []string) {
 
 // LinkedSnap parses the Readme body, and returns a StoreArtifact representing a snap
 // if there is a Snapcraft.io badge in the Readme.
-func (r *Readme) LinkedSnap() (snap *stores.Artifact) {
+func (r *Readme) LinkedSnap() *stores.Artifact {
 	// If the README has a Snapcraft Badge, fetch the snap information.
 	if snapName := getArtifactName(r.Body, snapBadgeRegexp); snapName != "" {
 		snapInfo, err := stores.FetchSnapDetails(snapName)
 		if err != nil {
 			log.Printf("failed to fetch snap package information for snap: %s", snapName)
-		} else {
-			snap = stores.NewArtifact(snapName, snapInfo)
 		}
 
 		return stores.NewArtifact(snapName, snapInfo)
@@ -55,14 +54,12 @@ func (r *Readme) LinkedSnap() (snap *stores.Artifact) {
 
 // LinkedCharm parses the Readme body, and returns a StoreArtifact representing a charm
 // if there is a Charmhub.io badge in the Readme.
-func (r *Readme) LinkedCharm() (charm *stores.Artifact) {
+func (r *Readme) LinkedCharm() *stores.Artifact {
 	// If the README has a Charmhub Badge, fetch the charm information
 	if charmName := getArtifactName(r.Body, charmBadgeRegexp); charmName != "" {
 		charmInfo, err := stores.FetchCharmDetails(charmName)
 		if err != nil {
 			log.Printf("failed to fetch charm information for charm: %s", charmName)
-		} else {
-			charm = stores.NewArtifact(charmName, charmInfo)
 		}
 
 		return stores.NewArtifact(charmName, charmInfo)
@@ -72,7 +69,7 @@ func (r *Readme) LinkedCharm() (charm *stores.Artifact) {
 }
 
 // getArtifactName tries to parse an artifact name from a store badge in repo's README.
-func getArtifactName(readme string, re *regexp.Regexp) (name string) {
+func getArtifactName(readme string, re *regexp.Regexp) string {
 	nameIndex := re.SubexpIndex("Name")
 
 	matches := re.FindStringSubmatch(readme)

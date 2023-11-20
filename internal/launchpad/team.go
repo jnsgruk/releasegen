@@ -11,7 +11,7 @@ import (
 
 // FetchProjectGroupRepos creates a slice of RepoDetails types representing the repos
 // associated with a given ProjectGroup in Launchpad.
-func FetchProjectGroupRepos(projectGroup string, config Config) (out []repos.RepoDetails, err error) {
+func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDetails, error) {
 	projects, err := enumerateProjectGroup(projectGroup)
 	if err != nil {
 		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
@@ -20,6 +20,7 @@ func FetchProjectGroupRepos(projectGroup string, config Config) (out []repos.Rep
 	var wg sync.WaitGroup
 
 	lpRepos := []*Repository{}
+	out := []repos.RepoDetails{}
 
 	for _, project := range projects {
 		p := project
