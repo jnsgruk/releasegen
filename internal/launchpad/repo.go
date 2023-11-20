@@ -1,6 +1,7 @@
 package launchpad
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jnsgruk/releasegen/internal/repos"
@@ -10,29 +11,27 @@ import (
 type Repository struct {
 	Details      repos.RepoDetails
 	projectGroup string
-	readme       *repos.Readme
 }
 
 // Process populates the Repository with details of its tags, default branch, and commits.
-func (r *Repository) Process() error {
-
+func (r *Repository) Process(ctx context.Context) error {
 	project := &Project{Name: r.Details.Name}
 
-	defaultBranch, err := project.DefaultBranch()
+	defaultBranch, err := project.DefaultBranch(ctx)
 	if err != nil {
 		return err
 	}
 
 	r.Details.DefaultBranch = defaultBranch
 
-	newCommits, err := project.NewCommits()
+	newCommits, err := project.NewCommits(ctx)
 	if err != nil {
 		return err
 	}
 
 	r.Details.NewCommits = newCommits
 
-	tags, err := project.Tags()
+	tags, err := project.Tags(ctx)
 	if err != nil {
 		return err
 	}
@@ -54,18 +53,28 @@ func (r *Repository) Process() error {
 		})
 	}
 
-	// Get contents of the README as a string.
-	readmeContent, err := project.fetchReadmeContent()
+	// Populate the repository's README from Launchpad, parse any linked snaps, charms or CI actions.
+	err = r.parseReadme(ctx, project)
 	if err != nil {
-		// The rest of this method depends on the README content, so if we don't get
-		// any README content, we may as well return early.
+		return err
+	}
+
+	return err
+}
+
+// parseReadme is a helper function to fetch the README from a Launchpad repository and return
+// its contents as a string.
+func (r *Repository) parseReadme(ctx context.Context, project *Project) error {
+	// Get contents of the README as a string.
+	readmeContent, err := project.fetchReadmeContent(ctx)
+	if err != nil {
 		return err
 	}
 
 	// Parse contents of README to identify associated snaps and charms.
-	r.readme = &repos.Readme{Body: readmeContent}
-	r.Details.Snap = r.readme.LinkedSnap()
-	r.Details.Charm = r.readme.LinkedCharm()
+	readme := &repos.Readme{Body: readmeContent}
+	r.Details.Snap = readme.LinkedSnap(ctx)
+	r.Details.Charm = readme.LinkedCharm(ctx)
 
-	return err
+	return nil
 }

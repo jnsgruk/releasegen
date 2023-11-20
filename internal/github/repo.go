@@ -27,114 +27,143 @@ type Repository struct {
 	Details repos.RepoDetails
 	org     string // The Github Org that owns the repo.
 	team    string // The Github team, within the org, that has rights over the repo.
-	readme  *repos.Readme
 	client  *gh.Client
 }
 
 // Process populates the Repository with details of its releases, and commits.
-func (r *Repository) Process() error {
-
+func (r *Repository) Process(ctx context.Context) error {
 	// Skip archived repositories.
-	if r.IsArchived() {
+	if r.IsArchived(ctx) {
 		return nil
 	}
 
-	ctx := context.Background()
-	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
-
-	// Get the releases from the repo.
-	releases, _, err := r.client.Repositories.ListReleases(ctx, r.org, r.Details.Name, opts)
+	// Iterate over the releases in the Github repo and add them to our repository's details.
+	err := r.processReleases(ctx)
 	if err != nil {
-		return errors.New("error listing releases for repo")
-	}
-
-	if len(releases) > 0 {
-		// Iterate over the releases in the Github repo.
-		for _, rel := range releases {
-			r.Details.Releases = append(r.Details.Releases, &repos.Release{
-				ID:         rel.GetID(),
-				Version:    rel.GetTagName(),
-				Timestamp:  rel.CreatedAt.Time.Unix(),
-				Title:      rel.GetName(),
-				Body:       renderReleaseBody(rel.GetBody()),
-				URL:        rel.GetHTMLURL(),
-				CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.Details.DefaultBranch),
-			})
-		}
-
-		// Add the commit delta between last release and default branch.
-		comparison, _, err := r.client.Repositories.CompareCommits(
-			ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.Details.DefaultBranch, opts,
-		)
-		if err != nil {
-			return errors.New("error getting commit comparison for release")
-		}
-
-		r.Details.NewCommits = *comparison.TotalCommits
-	} else {
-		// If there are no releases, get the latest commit instead.
-		commits, _, err := r.client.Repositories.ListCommits(ctx, r.org, r.Details.Name, nil)
-		// If there is at least one commit, add it as a release.
-		if err == nil {
-			com := commits[0]
-			ts := com.GetCommit().GetAuthor().GetDate()
-			r.Details.Commits = append(r.Details.Commits, &repos.Commit{
-				Sha:       com.GetSHA(),
-				Author:    com.GetCommit().GetAuthor().GetName(),
-				Timestamp: ts.GetTime().Unix(),
-				Message:   com.GetCommit().GetMessage(),
-				URL:       com.GetHTMLURL(),
-			})
-		}
-	}
-
-	// Get contents of the README as a string.
-	readmeContent, err := r.fetchReadmeContent()
-	if err != nil {
-		// The rest of this method depends on the README content, so if we don't get
-		// any README content, we may as well return early.
 		return err
 	}
 
-	// Parse contents of README to identify associated Github Workflows, snaps, charms.
-	r.readme = &repos.Readme{Body: readmeContent}
-	r.Details.CiActions = r.readme.GithubActions()
-	r.Details.Snap = r.readme.LinkedSnap()
-	r.Details.Charm = r.readme.LinkedCharm()
+	if len(r.Details.Releases) > 0 {
+		// Calculate the number of commits since the latest release.
+		err := r.processCommitsSinceRelease(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		// If there are no releases, get the latest commit instead.
+		err := r.processCommits(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Populate the repository's README from Github, parse any linked snaps, charms or CI actions.
+	err = r.parseReadme(ctx)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 // IsArchived indicates whether or not the repository is marked as archived on Github.
-func (r *Repository) IsArchived() bool {
-	// Check if the repository is archived
-	repoObject, _, err := r.client.Repositories.Get(context.Background(), r.org, r.Details.Name)
+func (r *Repository) IsArchived(ctx context.Context) bool {
+	repoObject, _, err := r.client.Repositories.Get(ctx, r.org, r.Details.Name)
 	if err != nil {
-		log.Printf(
-			"error while checking archived status for repo '%s/%s/%s': %s",
-			r.org, r.team, r.Details.Name, err.Error(),
-		)
-
 		return false
 	}
 
 	return repoObject.GetArchived()
 }
 
-// fetchReadmeContent is a helper function to fetch the README from a Github repository and return
+// parseReadme is a helper function to fetch the README from a Github repository and return
 // its contents as a string.
-func (r *Repository) fetchReadmeContent() (string, error) {
-	readme, _, err := r.client.Repositories.GetReadme(context.Background(), r.org, r.Details.Name, nil)
+func (r *Repository) parseReadme(ctx context.Context) error {
+	githubReadme, _, err := r.client.Repositories.GetReadme(ctx, r.org, r.Details.Name, nil)
 	if err != nil {
-		return "", errFetchReadme
+		return errFetchReadme
 	}
 
-	content, err := readme.GetContent()
+	content, err := githubReadme.GetContent()
 	if err != nil {
-		return "", errFetchReadme
+		return errFetchReadme
 	}
 
-	return content, nil
+	// Parse contents of README to identify associated Github Workflows, snaps, charms.
+	readme := &repos.Readme{Body: content}
+	r.Details.CiActions = readme.GithubActions()
+	r.Details.Snap = readme.LinkedSnap(ctx)
+	r.Details.Charm = readme.LinkedCharm(ctx)
+
+	return nil
+}
+
+// processReleases fetches a repository's releases from Github, then populates r.Details.Releases
+// with the information in the relevant format for releasegen.
+func (r *Repository) processReleases(ctx context.Context) error {
+	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
+
+	releases, _, err := r.client.Repositories.ListReleases(ctx, r.org, r.Details.Name, opts)
+	if err != nil {
+		return errors.New("error listing releases for repo")
+	}
+
+	for _, rel := range releases {
+		r.Details.Releases = append(r.Details.Releases, &repos.Release{
+			ID:         rel.GetID(),
+			Version:    rel.GetTagName(),
+			Timestamp:  rel.CreatedAt.Time.Unix(),
+			Title:      rel.GetName(),
+			Body:       renderReleaseBody(rel.GetBody()),
+			URL:        rel.GetHTMLURL(),
+			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.Details.DefaultBranch),
+		})
+	}
+
+	return nil
+}
+
+// processCommitsSinceRelease calculates the number of commits that have occurred on the default
+// branch of the repository since the last release, and populates the information in r.Details.
+func (r *Repository) processCommitsSinceRelease(ctx context.Context) error {
+	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
+	// Add the commit delta between last release and default branch.
+	comparison, _, err := r.client.Repositories.CompareCommits(
+		ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.Details.DefaultBranch, opts,
+	)
+	if err != nil {
+		return errors.New("error getting commit comparison for release")
+	}
+
+	r.Details.NewCommits = *comparison.TotalCommits
+
+	return nil
+}
+
+// processCommits fetches the latest 3 commits to a repository and populates them into the repo
+// struct in the case that there are no releases identified.
+func (r *Repository) processCommits(ctx context.Context) error {
+	opts := &gh.CommitsListOptions{ListOptions: gh.ListOptions{PerPage: githubReleasesPerRepo}}
+
+	// If there are no releases, get the latest commit instead.
+	commits, _, err := r.client.Repositories.ListCommits(ctx, r.org, r.Details.Name, opts)
+	if err != nil {
+		return errors.New("error listing commits for repositroy")
+	}
+
+	// Iterate over the commits and append them to r.Details.Commits
+	for _, commit := range commits {
+		ts := commit.GetCommit().GetAuthor().GetDate()
+		r.Details.Commits = append(r.Details.Commits, &repos.Commit{
+			Sha:       commit.GetSHA(),
+			Author:    commit.GetCommit().GetAuthor().GetName(),
+			Timestamp: ts.GetTime().Unix(),
+			Message:   commit.GetCommit().GetMessage(),
+			URL:       commit.GetHTMLURL(),
+		})
+	}
+
+	return nil
 }
 
 // renderReleaseBody transforms a Markdown string from a Github Release into HTML.

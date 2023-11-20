@@ -1,6 +1,7 @@
 package launchpad
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"slices"
@@ -12,7 +13,9 @@ import (
 // FetchProjectGroupRepos creates a slice of RepoDetails types representing the repos
 // associated with a given ProjectGroup in Launchpad.
 func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDetails, error) {
-	projects, err := enumerateProjectGroup(projectGroup)
+	ctx := context.Background()
+
+	projects, err := enumerateProjectGroup(ctx, projectGroup)
 	if err != nil {
 		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
 	}
@@ -54,6 +57,8 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 			defer wg.Done()
 
 			log.Printf("processing launchpad repo: %s/%s\n", repo.projectGroup, repo.Details.Name)
+
+			err := repo.Process(ctx)
 			if err != nil {
 				log.Printf("error populating repo %s from launchpad: %s", repo.Details.Name, err.Error())
 			}

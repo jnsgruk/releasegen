@@ -11,12 +11,12 @@ import (
 )
 
 // FetchSnapDetails fetches the Json representing charm information by querying the Snapcraft API.
-func FetchSnapDetails(name string) (*ArtifactDetails, error) {
+func FetchSnapDetails(ctx context.Context, name string) (*ArtifactDetails, error) {
 	// Query the Snapcraft API to obtain the charm information.
 	apiURL := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url", name)
 
 	client := &http.Client{}
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, apiURL, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	// According to: https://api.snapcraft.io/docs/refresh.html
 	// The only valid 'Snap-Device-Series' to date is '16', and the
 	// header must be set in order for the request to be successful.

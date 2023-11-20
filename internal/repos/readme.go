@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"log"
 	"regexp"
 
@@ -38,10 +39,10 @@ func (r *Readme) GithubActions() []string {
 
 // LinkedSnap parses the Readme body, and returns a StoreArtifact representing a snap
 // if there is a Snapcraft.io badge in the Readme.
-func (r *Readme) LinkedSnap() *stores.Artifact {
+func (r *Readme) LinkedSnap(ctx context.Context) *stores.Artifact {
 	// If the README has a Snapcraft Badge, fetch the snap information.
 	if snapName := getArtifactName(r.Body, snapBadgeRegexp); snapName != "" {
-		snapInfo, err := stores.FetchSnapDetails(snapName)
+		snapInfo, err := stores.FetchSnapDetails(ctx, snapName)
 		if err != nil {
 			log.Printf("failed to fetch snap package information for snap: %s", snapName)
 		}
@@ -54,10 +55,10 @@ func (r *Readme) LinkedSnap() *stores.Artifact {
 
 // LinkedCharm parses the Readme body, and returns a StoreArtifact representing a charm
 // if there is a Charmhub.io badge in the Readme.
-func (r *Readme) LinkedCharm() *stores.Artifact {
+func (r *Readme) LinkedCharm(ctx context.Context) *stores.Artifact {
 	// If the README has a Charmhub Badge, fetch the charm information
 	if charmName := getArtifactName(r.Body, charmBadgeRegexp); charmName != "" {
-		charmInfo, err := stores.FetchCharmDetails(charmName)
+		charmInfo, err := stores.FetchCharmDetails(ctx, charmName)
 		if err != nil {
 			log.Printf("failed to fetch charm information for charm: %s", charmName)
 		}

@@ -11,11 +11,11 @@ import (
 )
 
 // FetchCharmDetails fetches the Json representing charm information by querying the Charmhub API.
-func FetchCharmDetails(name string) (*ArtifactDetails, error) {
+func FetchCharmDetails(ctx context.Context, name string) (*ArtifactDetails, error) {
 	apiURL := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
 
 	client := &http.Client{}
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, apiURL, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 
 	res, err := client.Do(req)
 	if err != nil {

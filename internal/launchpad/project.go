@@ -32,14 +32,14 @@ type Project struct {
 }
 
 // Tags returns a list of tags for a Launchpad project.
-func (p *Project) Tags() ([]*Tag, error) {
+func (p *Project) Tags(ctx context.Context) ([]*Tag, error) {
 	// If we've already fetched the tags on this run, then return them.
 	if len(p.tags) > 0 {
 		return p.tags, nil
 	}
 
 	// Otherwise fetch the tags from launchpad.
-	tags, err := p.fetchTags()
+	tags, err := p.fetchTags(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -48,14 +48,14 @@ func (p *Project) Tags() ([]*Tag, error) {
 }
 
 // DefaultBranch returns the default VCS branch for a Launchpad project.
-func (p *Project) DefaultBranch() (string, error) {
+func (p *Project) DefaultBranch(ctx context.Context) (string, error) {
 	// If we've already populated the default branch, just return it.
 	if p.defaultBranch != "" {
 		return p.defaultBranch, nil
 	}
 
 	// Make sure the Project page data is present.
-	if err := p.fetchProjectPage(); err != nil {
+	if err := p.fetchProjectPage(ctx); err != nil {
 		return "", err
 	}
 
@@ -79,10 +79,10 @@ func (p *Project) DefaultBranch() (string, error) {
 
 // GetNewCommits parses the git log page for a Launchpad project and returns the number of
 // commits that have happened on the default branch since the last tag.
-func (p *Project) NewCommits() (int, error) {
+func (p *Project) NewCommits(ctx context.Context) (int, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/log", p.Name)
 
-	doc, err := parseWebpage(url)
+	doc, err := parseWebpage(ctx, url)
 	if err != nil {
 		return -1, err
 	}
@@ -101,9 +101,9 @@ func (p *Project) NewCommits() (int, error) {
 }
 
 // fetchTags scrapes the launchpad project repo page for a list of git tags.
-func (p *Project) fetchTags() ([]*Tag, error) {
+func (p *Project) fetchTags(ctx context.Context) ([]*Tag, error) {
 	// Populate the project with a scrapable version of its VCS page if not already fetched.
-	if err := p.fetchProjectPage(); err != nil {
+	if err := p.fetchProjectPage(ctx); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +142,7 @@ func (p *Project) fetchTags() ([]*Tag, error) {
 			}
 
 			tag := &Tag{project: p.Name, Name: tagName}
-			if err := tag.Process(); err != nil {
+			if err := tag.Process(ctx); err != nil {
 				return
 			}
 
@@ -159,11 +159,11 @@ func (p *Project) fetchTags() ([]*Tag, error) {
 
 // fetchProjectPage fetches the project page, and assigns the project's projectPage to a parsed
 // representation of the page.
-func (p *Project) fetchProjectPage() error {
+func (p *Project) fetchProjectPage(ctx context.Context) error {
 	if p.projectPage == nil {
 		projectURL := fmt.Sprintf("https://git.launchpad.net/%s", p.Name)
 
-		page, err := parseWebpage(projectURL)
+		page, err := parseWebpage(ctx, projectURL)
 		if err != nil {
 			return errors.New("error fetching project page")
 		}
@@ -175,10 +175,10 @@ func (p *Project) fetchProjectPage() error {
 }
 
 // fetchReadmeContent fetches the content of a README.md for a project if it has one.
-func (p *Project) fetchReadmeContent() (string, error) {
+func (p *Project) fetchReadmeContent(ctx context.Context) (string, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/plain/README.md", p.Name)
 	client := &http.Client{Timeout: launchpadTimeout}
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -209,11 +209,11 @@ type Tag struct {
 }
 
 // Process populates the tag with details of the relevant commit.
-func (t *Tag) Process() error {
+func (t *Tag) Process(ctx context.Context) error {
 	// Construct a URL for the project commit page, including a tag if specified.
 	url := fmt.Sprintf("https://git.launchpad.net/%s/commit/?h=%s", t.project, t.Name)
 
-	doc, err := parseWebpage(url)
+	doc, err := parseWebpage(ctx, url)
 	if err != nil {
 		return errors.New("error fetching commit page")
 	}
@@ -238,9 +238,9 @@ func (t *Tag) Process() error {
 }
 
 // parseWebpage fetches a URL and returns a goquery.Document for scraping.
-func parseWebpage(url string) (*goquery.Document, error) {
+func parseWebpage(ctx context.Context, url string) (*goquery.Document, error) {
 	client := &http.Client{Timeout: launchpadTimeout}
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 
 	res, err := client.Do(req)
 	if err != nil {
