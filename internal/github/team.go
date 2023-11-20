@@ -69,7 +69,9 @@ func getTeamRepos(org OrgConfig, team string, orgRepos []repos.RepoDetails) ([]*
 		}
 		ghRepos = append(ghRepos, repo)
 
-		err := repo.Process()
+		log.Printf("processing github repo: %s/%s/%s\n", repo.org, repo.team, repo.Details.Name)
+
+		err := repo.Process(ctx)
 		if err != nil {
 			log.Printf("error populating repo '%s' from github: %s", repo.Details.Name, err.Error())
 		}

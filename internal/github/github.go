@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 
 	ghrl "github.com/gofri/go-github-ratelimit/github_ratelimit"
 	gh "github.com/google/go-github/v54/github"
@@ -24,8 +23,6 @@ type OrgConfig struct {
 // initialised client.
 func (oc *OrgConfig) GithubClient() *gh.Client {
 	if oc.ghClient == nil {
-		log.Println("creating new Github client")
-
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: viper.GetString("token")})
 		tc := oauth2.NewClient(context.Background(), ts)
 

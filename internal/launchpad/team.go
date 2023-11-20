@@ -53,7 +53,7 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 		go func() {
 			defer wg.Done()
 
-			err := repo.Process()
+			log.Printf("processing launchpad repo: %s/%s\n", repo.projectGroup, repo.Details.Name)
 			if err != nil {
 				log.Printf("error populating repo %s from launchpad: %s", repo.Details.Name, err.Error())
 			}

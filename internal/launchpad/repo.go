@@ -2,7 +2,6 @@ package launchpad
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
@@ -16,7 +15,6 @@ type Repository struct {
 
 // Process populates the Repository with details of its tags, default branch, and commits.
 func (r *Repository) Process() error {
-	log.Printf("processing launchpad repo: %s/%s\n", r.projectGroup, r.Details.Name)
 
 	project := &Project{Name: r.Details.Name}
 

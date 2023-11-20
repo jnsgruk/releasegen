@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 
 	"github.com/gomarkdown/markdown"
@@ -34,7 +33,6 @@ type Repository struct {
 
 // Process populates the Repository with details of its releases, and commits.
 func (r *Repository) Process() error {
-	log.Printf("processing github repo: %s/%s/%s\n", r.org, r.team, r.Details.Name)
 
 	// Skip archived repositories.
 	if r.IsArchived() {
