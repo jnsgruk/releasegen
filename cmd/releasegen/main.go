@@ -11,13 +11,14 @@ import (
 )
 
 var (
-	version string = "dev"
-	commit  string = "dev"
+	version = "dev"
+	commit  = "dev"
 	date    string
 )
 
-var shortDesc = "releasegen - a utility for enumerating Github and Launchpad releases"
-var longDesc string = ` releasegen is a utility for enumerating Github and Launchpad releases/tags
+const (
+	shortDesc = "releasegen - a utility for enumerating Github and Launchpad releases"
+	longDesc  = ` releasegen is a utility for enumerating Github and Launchpad releases/tags
 from specified Github Organisations or Launchpad project groups.
 
 This tool is configured using a single file in one of the three following locations:
@@ -40,8 +41,9 @@ You can create a Personal Access Token at: https://github.com/settings/tokens
 
 Homepage: https://github.com/jnsgruk/releasegen
 `
+)
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:          "releasegen",
 	Version:      buildVersion(version, commit, date),
