@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime"
@@ -53,22 +54,21 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := viper.ReadInConfig()
 		if err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				return fmt.Errorf("config file 'releasegen.yaml' not found")
-			} else {
-				return fmt.Errorf("error parsing config file")
+			if errors.As(err, &viper.ConfigFileNotFoundError{}) {
+				return errors.New("no config file found, see 'releasegen --help' for details")
 			}
+			return errors.New("error parsing releasegen config file")
 		}
 
-		conf := &releasegen.ReleasegenConfig{}
+		conf := &releasegen.Config{}
 
 		err = viper.Unmarshal(conf)
 		if err != nil {
-			return fmt.Errorf("unable to decode into config struct, %v", err)
+			return errors.New("error parsing releasegen config file")
 		}
 
 		if viper.Get("token") == nil {
-			return fmt.Errorf("environment variable RELEASEGEN_TOKEN not set")
+			return errors.New("environment variable RELEASEGEN_TOKEN not set")
 		}
 
 		teams := releasegen.GenerateReport(conf)
@@ -78,8 +78,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// buildVersion writes a multiline version string from the specified
-// version variables
+// buildVersion writes a multiline version string from the specified version variables.
 func buildVersion(version, commit, date string) string {
 	result := version
 

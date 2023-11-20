@@ -6,13 +6,13 @@ import (
 )
 
 // Config represents the user provided configuration file.
-type ReleasegenConfig struct {
+type Config struct {
 	Teams []*TeamConfig `yaml:"teams"`
 }
 
 // TeamConfig represents the configuration for a given real-life team.
 type TeamConfig struct {
-	Name            string                    `mapstructure:"name"`
-	GithubConfig    []github.GithubOrgConfig  `mapstructure:"github"`
-	LaunchpadConfig launchpad.LaunchpadConfig `mapstructure:"launchpad"`
+	Name            string             `mapstructure:"name"`
+	GithubConfig    []github.OrgConfig `mapstructure:"github"`
+	LaunchpadConfig launchpad.Config   `mapstructure:"launchpad"`
 }

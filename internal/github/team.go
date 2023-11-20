@@ -11,8 +11,8 @@ import (
 )
 
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
-// owned by the specified teams in the Github org
-func FetchOrgRepos(org GithubOrgConfig) (out []repos.RepoDetails, err error) {
+// owned by the specified teams in the Github org.
+func FetchOrgRepos(org OrgConfig) (out []repos.RepoDetails, err error) {
 	client := githubClient()
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: 1000}
@@ -22,7 +22,7 @@ func FetchOrgRepos(org GithubOrgConfig) (out []repos.RepoDetails, err error) {
 		// Lists the Github repositories that the 'ghTeam' has access to.
 		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
 		if err != nil {
-			return nil, fmt.Errorf("error listing repositories for github org '%s': %s", org.Org, err.Error())
+			return nil, fmt.Errorf("error listing repositories for github org: %s", org.Org)
 		}
 
 		ghRepos := []*Repository{}

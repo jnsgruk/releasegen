@@ -1,6 +1,7 @@
 package launchpad
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,13 @@ import (
 )
 
 // Project is a representation of a Launchpad Project
+var (
+	// errUnexpectedStatusCode is returned when an HTTP status code is not as expected.
+	errUnexpectedStatusCode = errors.New("unexpected HTTP status code")
+	// errFetchReadme is returned when a README could not be fetched or parsed.
+	errFetchReadme = errors.New("error getting README for repo")
+)
+
 // Project is a representation of a Launchpad Project.
 type Project struct {
 	Name          string
@@ -56,7 +64,7 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 	})
 
 	if branch == "" {
-		return "", fmt.Errorf("could not parse default branch for: %s", p.Name)
+		return "", errors.New("error parsing default branch for repository")
 	}
 
 	p.defaultBranch = branch
@@ -150,7 +158,7 @@ func (p *Project) fetchProjectPage() error {
 
 		page, err := parseWebpage(projectURL)
 		if err != nil {
-			return fmt.Errorf("could not fetch launchpad project page %s: %v", p.Name, err)
+			return errors.New("error fetching project page")
 		}
 
 		p.projectPage = page
@@ -164,18 +172,18 @@ func (p *Project) fetchReadmeContent() (string, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/plain/README.md", p.Name)
 	res, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return "", errFetchReadme
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code %d fetching %s", res.StatusCode, url)
+	if res.StatusCode != http.StatusOK {
+		return "", errUnexpectedStatusCode
 	}
 
 	// Parse the useful information from the response.
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("cannot read response body while fetching %s", url)
+		return "", errFetchReadme
 	}
 
 	return string(resBody), nil
@@ -197,7 +205,7 @@ func (t *Tag) Process() error {
 
 	doc, err := parseWebpage(url)
 	if err != nil {
-		return fmt.Errorf("could not fetch tag page %s: %v", url, err)
+		return errors.New("error fetching commit page")
 	}
 
 	// Find the commit hash for the tag.
@@ -211,8 +219,9 @@ func (t *Tag) Process() error {
 	// Parse the Launchpad timestamp into a time.Time.
 	timestamp, err := time.Parse("2006-01-02 15:04:05 -0700", ts)
 	if err != nil {
-		return err
+		return errors.New("error parsing timestamp for Launchpad tag")
 	}
+
 	t.Timestamp = &timestamp
 
 	return nil
@@ -222,12 +231,12 @@ func (t *Tag) Process() error {
 func parseWebpage(url string) (*goquery.Document, error) {
 	res, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error fetching url %s: %w", url, err)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code %d fetching %s", res.StatusCode, url)
+	if res.StatusCode != http.StatusOK {
+		return nil, errUnexpectedStatusCode
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)

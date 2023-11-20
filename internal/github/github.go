@@ -12,9 +12,9 @@ import (
 
 var ghClient *gh.Client
 
-// GithubOrgConfig contains fields used in releasegen's config.yaml file to configure
+// OrgConfig contains fields used in releasegen's config.yaml file to configure
 // its behaviour when generating reports about Github repositories.
-type GithubOrgConfig struct {
+type OrgConfig struct {
 	Org          string   `mapstructure:"org"`
 	Teams        []string `mapstructure:"teams"`
 	IgnoredRepos []string `mapstructure:"ignores"`
@@ -27,7 +27,6 @@ func githubClient() *gh.Client {
 		log.Println("creating new Github client")
 
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: viper.GetString("token")})
-		)
 		tc := oauth2.NewClient(context.Background(), ts)
 
 		rateLimiter, err := github_ratelimit.NewRateLimitWaiterClient(tc.Transport)

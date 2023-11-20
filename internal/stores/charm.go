@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,18 +14,18 @@ func FetchCharmDetails(name string) (*artifactDetails, error) {
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
 	res, err := http.Get(apiUrl)
 	if err != nil {
-		return nil, fmt.Errorf("cannot query the snapcraft api: %w", err)
+		return nil, errors.New("failed to contact the store api")
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code %d fetching %s", res.StatusCode, apiUrl)
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("unexpected status code while fetching store resource")
 	}
 
-	// Parse the useful information from the response
+	// Parse the useful information from the response.
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read response body while fetching %s", apiUrl)
+		return nil, errors.New("failed to read details about artifact from the store")
 	}
 
 	jsonBody := string(resBody)

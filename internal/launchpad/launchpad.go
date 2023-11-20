@@ -1,6 +1,7 @@
 package launchpad
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,9 +10,16 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// LaunchpadConfig contains fields used in releasegen's config.yaml file to configure
-// its behaviour when generating reports about Launchpad repositories
-type LaunchpadConfig struct {
+var errEnumerateProjectGroup = errors.New("error enumerating project group")
+
+// enumerateProjectGroupError builds a wrapped error that might occur when enumerating a group.
+func enumerateProjectGroupError(err error) error {
+	return fmt.Errorf("%w: %s", errEnumerateProjectGroup, err.Error())
+}
+
+// Config contains fields used in releasegen's config.yaml file to configure
+// its behaviour when generating reports about Launchpad repositories.
+type Config struct {
 	ProjectGroups []string `mapstructure:"project-groups"`
 	IgnoredRepos  []string `mapstructure:"ignores"`
 }
@@ -24,18 +32,18 @@ func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, enumerateProjectGroupError(err)
 	}
 
 	res, getErr := client.Do(req)
 	if getErr != nil {
-		return nil, err
+		return nil, enumerateProjectGroupError(err)
 	}
 	defer res.Body.Close()
 
 	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
-		return nil, err
+		return nil, enumerateProjectGroupError(err)
 	}
 
 	// Parse the result as JSON, grab the "entries" key.

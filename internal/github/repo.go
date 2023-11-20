@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -16,6 +17,8 @@ var (
 	prRegexp = regexp.MustCompile(`(https://github.com/canonical/.+/pull/([0-9]+))`)
 	// userRegexp is used to find Twitter/Github style mentions such as '@JoeBloggs' in Markdown/HTML.
 	userRegexp = regexp.MustCompile(`(\A|\s)@([\w-_]+)`)
+	// errFetchReadme is returned when a README could not be fetched or parsed.
+	errFetchReadme = errors.New("error getting README for repo")
 )
 
 // Repository represents a single Github Repository.
@@ -42,7 +45,7 @@ func (r *Repository) Process() error {
 	// Get the releases from the repo.
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.Details.Name, opts)
 	if err != nil {
-		return fmt.Errorf(
+		return errors.New("error listing releases for repo")
 	}
 
 	if len(releases) > 0 {
@@ -63,12 +66,8 @@ func (r *Repository) Process() error {
 		comparison, _, err := client.Repositories.CompareCommits(
 			ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.Details.DefaultBranch, opts,
 		)
-
 		if err != nil {
-			return fmt.Errorf(
-				"error getting commit comparison for release '%s' in '%s/%s/%s': %s",
-				r.Details.Releases[0].Version, r.org, r.team, r.Details.Name, err.Error(),
-			)
+			return errors.New("error getting commit comparison for release")
 		}
 
 		r.Details.NewCommits = *comparison.TotalCommits
@@ -130,12 +129,12 @@ func (r *Repository) fetchReadmeContent() (string, error) {
 
 	readme, _, err := client.Repositories.GetReadme(context.Background(), r.org, r.Details.Name, nil)
 	if err != nil {
-		return "", fmt.Errorf("error getting README for repo '%s/%s': %s", r.org, r.Details.Name, err.Error())
+		return "", errFetchReadme
 	}
 
 	content, err := readme.GetContent()
 	if err != nil {
-		return "", fmt.Errorf("error getting README content for repo '%s/%s'", r.org, r.Details.Name)
+		return "", errFetchReadme
 	}
 
 	return content, nil

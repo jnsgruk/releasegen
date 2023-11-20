@@ -13,7 +13,7 @@ import (
 type ReleaseReport []*TeamDetails
 
 // GenerateReport takes a given config, and generates the output JSON.
-func GenerateReport(conf *ReleasegenConfig) ReleaseReport {
+func GenerateReport(conf *Config) ReleaseReport {
 	teams := ReleaseReport{}
 
 	// Iterate over the teams specified in the config file.

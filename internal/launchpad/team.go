@@ -11,10 +11,10 @@ import (
 
 // FetchProjectGroupRepos creates a slice of RepoDetails types representing the repos
 // associated with a given ProjectGroup in Launchpad.
-func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []repos.RepoDetails, err error) {
+func FetchProjectGroupRepos(projectGroup string, config Config) (out []repos.RepoDetails, err error) {
 	projects, err := enumerateProjectGroup(projectGroup)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
 	}
 
 	var wg sync.WaitGroup
@@ -22,14 +22,15 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 	lpRepos := []*Repository{}
 
 	for _, project := range projects {
+		p := project
 		// Check if the name of the repository is in the ignore list for the team
-		if slices.Contains(config.IgnoredRepos, project) {
+		if slices.Contains(config.IgnoredRepos, p) {
 			continue
 		}
 
 		// See if we can find a repo in this team with the same name, if yes then skip
 		index := slices.IndexFunc(out, func(repo repos.RepoDetails) bool {
-			return repo.Name == project
+			return repo.Name == p
 		})
 		if index >= 0 {
 			continue
@@ -38,9 +39,9 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 		// Create a new repository, add to the list of repos for the project group
 		repo := &Repository{
 			Details: repos.RepoDetails{
-				Name:          project,
+				Name:          p,
 				DefaultBranch: "",
-				Url:           fmt.Sprintf("https://git.launchpad.net/%s", project),
+				URL:           fmt.Sprintf("https://git.launchpad.net/%s", p),
 			},
 			projectGroup: projectGroup,
 		}
@@ -53,7 +54,7 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 
 			err := repo.Process()
 			if err != nil {
-				log.Printf("error populating repo %s from launchpad: %v", repo.Details.Name, err)
+				log.Printf("error populating repo %s from launchpad: %s", repo.Details.Name, err.Error())
 			}
 		}()
 	}
