@@ -12,7 +12,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// Project is a representation of a Launchpad Project
+// The number of tags fetched per repo by default.
+const defaultNumTags = 3
+
 var (
 	// errUnexpectedStatusCode is returned when an HTTP status code is not as expected.
 	errUnexpectedStatusCode = errors.New("unexpected HTTP status code")
@@ -110,7 +112,7 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 
 	tagRowHeader.NextUntil("tr.nohover").EachWithBreak(func(_ int, row *goquery.Selection) bool {
 		// Only get the first three tags.
-		if len(tags) == 3 {
+		if len(tags) == defaultNumTags {
 			return false
 		}
 
