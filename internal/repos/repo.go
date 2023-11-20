@@ -1,6 +1,8 @@
 package repos
 
 import (
+	"slices"
+
 	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
@@ -40,4 +42,13 @@ type Commit struct {
 	Timestamp int64  `json:"timestamp"`
 	Message   string `json:"message"`
 	URL       string `json:"url"`
+}
+
+// repoInSlice is a helper function to test if a given repo is already in a list of repos.
+func RepoInSlice(repositories []RepoDetails, r string) bool {
+	index := slices.IndexFunc(repositories, func(repo RepoDetails) bool {
+		return repo.Name == r
+	})
+
+	return index >= 0
 }

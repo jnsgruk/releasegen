@@ -20,7 +20,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	// Iterate over the Github Teams, listing repos for each.
 	for _, team := range org.Teams {
 		// Process the Github orgs repositories into structs with the info we need.
-		teamRepos, err := getTeamRepos(org, team, orgRepos)
+		teamRepos, err := getTeamRepos(org, team, &orgRepos)
 		if err != nil {
 			return nil, err
 		}
@@ -38,7 +38,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 // getTeamRepos fetches a team's repos from the Github client and processes them into
 // the format releasegen needs.
-func getTeamRepos(org OrgConfig, team string, orgRepos []repos.RepoDetails) ([]*Repository, error) {
+func getTeamRepos(org OrgConfig, team string, orgRepos *[]repos.RepoDetails) ([]*Repository, error) {
 	ghRepos := []*Repository{}
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: githubPerPage}
@@ -53,7 +53,7 @@ func getTeamRepos(org OrgConfig, team string, orgRepos []repos.RepoDetails) ([]*
 	for _, tRepo := range teamRepos {
 		r := tRepo
 		// Check if the name of the repository is in the ignore list or private, or already processed.
-		if slices.Contains(org.IgnoredRepos, *r.Name) || *r.Private || repoInSlice(orgRepos, *r.Name) {
+		if slices.Contains(org.IgnoredRepos, *r.Name) || *r.Private || repos.RepoInSlice(*orgRepos, *r.Name) {
 			continue
 		}
 
@@ -78,13 +78,4 @@ func getTeamRepos(org OrgConfig, team string, orgRepos []repos.RepoDetails) ([]*
 	}
 
 	return ghRepos, nil
-}
-
-// repoInSlice is a helper function to test if a given repo is already in a list of repos.
-func repoInSlice(repositories []repos.RepoDetails, r string) bool {
-	index := slices.IndexFunc(repositories, func(repo repos.RepoDetails) bool {
-		return repo.Name == r
-	})
-
-	return index >= 0
 }
