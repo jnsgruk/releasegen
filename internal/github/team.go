@@ -15,7 +15,6 @@ const githubPerPage = 1000
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
 // owned by the specified teams in the Github org.
 func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
-	client := githubClient()
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: githubPerPage}
 	out := []repos.RepoDetails{}
@@ -23,7 +22,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	// Iterate over the Github Teams, listing repos for each.
 	for _, team := range org.Teams {
 		// Lists the Github repositories that the 'ghTeam' has access to.
-		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
+		orgRepos, _, err := org.GithubClient().Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
 		if err != nil {
 			return nil, fmt.Errorf("error listing repositories for github org: %s", org.Org)
 		}
@@ -53,8 +52,9 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 					DefaultBranch: *r.DefaultBranch,
 					URL:           *r.HTMLURL,
 				},
-				org:  org.Org,
-				team: team,
+				org:    org.Org,
+				team:   team,
+				client: org.GithubClient(),
 			}
 			ghRepos = append(ghRepos, repo)
 
