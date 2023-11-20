@@ -25,8 +25,8 @@ type GithubOrgConfig struct {
 func githubClient() *gh.Client {
 	if ghClient == nil {
 		log.Println("creating new Github client")
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: viper.Get("token").(string)},
+
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: viper.GetString("token")})
 		)
 		tc := oauth2.NewClient(context.Background(), ts)
 
@@ -37,5 +37,6 @@ func githubClient() *gh.Client {
 
 		ghClient = gh.NewClient(rateLimiter)
 	}
+
 	return ghClient
 }

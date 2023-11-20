@@ -29,28 +29,33 @@ func (t *Team) Process() error {
 	// Iterate over the Github orgs for a given team
 	for _, org := range t.config.GithubConfig {
 		log.Printf("processing github org: %s\n", org.Org)
+
 		ghRepos, err := github.FetchOrgRepos(org)
 		if err != nil {
 			return fmt.Errorf("error populating github repos: %w", err)
 		}
+
 		t.Details.Repos = append(t.Details.Repos, ghRepos...)
 	}
 
-	// Iterate over the Launchpad Project Groups for the team
+	// Iterate over the Launchpad Project Groups for the team.
 	for _, group := range t.config.LaunchpadConfig.ProjectGroups {
 		log.Printf("processing launchpad project group: %s\n", group)
+
 		lpRepos, err := launchpad.FetchProjectGroupRepos(group, t.config.LaunchpadConfig)
 		if err != nil {
 			return fmt.Errorf("error populating launchpad repos: %w", err)
 		}
+
 		t.Details.Repos = append(t.Details.Repos, lpRepos...)
 	}
 
-	// Sort the repos by the last released
+	// Sort the repos by the last released.
 	sort.Slice(t.Details.Repos, func(i, j int) bool {
 		if len(t.Details.Repos[i].Releases) == 0 || len(t.Details.Repos[j].Releases) == 0 {
 			return false
 		}
+
 		return t.Details.Repos[i].Releases[0].Timestamp > t.Details.Repos[j].Releases[0].Timestamp
 	})
 

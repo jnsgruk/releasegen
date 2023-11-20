@@ -42,9 +42,10 @@ func (r ReleaseReport) Dump() {
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "   ")
-	err := encoder.Encode(r)
-	if err != nil {
+
+	if err := encoder.Encode(r); err != nil {
 		log.Fatalln("unable to encode report to JSON")
 	}
+
 	fmt.Println(buffer.String())
 }

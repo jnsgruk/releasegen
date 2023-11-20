@@ -19,6 +19,7 @@ func FetchSnapDetails(name string) (*artifactDetails, error) {
 	// The only valid 'Snap-Device-Series' to date is '16', and the
 	// header must be set in order for the request to be successful.
 	req.Header.Set("Snap-Device-Series", "16")
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot query the snapcraft api: %w", err)

@@ -59,6 +59,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		conf := &releasegen.ReleasegenConfig{}
+
 		err = viper.Unmarshal(conf)
 		if err != nil {
 			return fmt.Errorf("unable to decode into config struct, %v", err)
@@ -70,6 +71,7 @@ var rootCmd = &cobra.Command{
 
 		teams := releasegen.GenerateReport(conf)
 		teams.Dump()
+
 		return nil
 	},
 }
@@ -78,13 +80,17 @@ var rootCmd = &cobra.Command{
 // version variables
 func buildVersion(version, commit, date string) string {
 	result := version
+
 	if commit != "" {
 		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
 	}
+
 	if date != "" {
 		result = fmt.Sprintf("%s\nbuilt at: %s", result, date)
 	}
+
 	result = fmt.Sprintf("%s\ngoos: %s\ngoarch: %s", result, runtime.GOOS, runtime.GOARCH)
+
 	return result
 }
 
@@ -102,8 +108,7 @@ func main() {
 	viper.SetEnvPrefix("releasegen")
 	viper.MustBindEnv("token")
 
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		log.Fatalln(err.Error())
 	}
 }

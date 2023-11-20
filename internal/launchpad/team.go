@@ -18,6 +18,7 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 	}
 
 	var wg sync.WaitGroup
+
 	lpRepos := []*Repository{}
 
 	for _, project := range projects {
@@ -46,14 +47,17 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 		lpRepos = append(lpRepos, repo)
 
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			err := repo.Process()
 			if err != nil {
 				log.Printf("error populating repo %s from launchpad: %v", repo.Details.Name, err)
 			}
 		}()
 	}
+
 	wg.Wait()
 
 	// Iterate over repos, add only those that have releases to the Team's list of repos
@@ -62,5 +66,6 @@ func FetchProjectGroupRepos(projectGroup string, config LaunchpadConfig) (out []
 			out = append(out, r.Details)
 		}
 	}
+
 	return out, nil
 }

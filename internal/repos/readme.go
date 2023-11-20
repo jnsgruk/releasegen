@@ -25,11 +25,13 @@ func (r *Readme) GithubActions() (actions []string) {
 	// Parse the CI actions
 	actionIndex := ciBadgeRegexp.SubexpIndex("Action")
 	matches := ciBadgeRegexp.FindAllStringSubmatch(r.Body, -1)
+
 	for _, actionMatch := range matches {
-		// Check if the Action belongs to the repository
+		// Check if the Action belongs to the repository.
 		act := actionMatch[actionIndex]
 		actions = append(actions, act)
 	}
+
 	return actions
 }
 
@@ -44,8 +46,11 @@ func (r *Readme) LinkedSnap() (snap *stores.Artifact) {
 		} else {
 			snap = stores.NewArtifact(snapName, snapInfo)
 		}
+
+		return stores.NewArtifact(snapName, snapInfo)
 	}
-	return snap
+
+	return nil
 }
 
 // LinkedCharm parses the Readme body, and returns a StoreArtifact representing a charm
@@ -59,16 +64,21 @@ func (r *Readme) LinkedCharm() (charm *stores.Artifact) {
 		} else {
 			charm = stores.NewArtifact(charmName, charmInfo)
 		}
+
+		return stores.NewArtifact(charmName, charmInfo)
 	}
-	return charm
+
+	return nil
 }
 
 // getArtifactName tries to parse an artifact name from a store badge in repo's README
 func getArtifactName(readme string, re *regexp.Regexp) (name string) {
 	nameIndex := re.SubexpIndex("Name")
+
 	matches := re.FindStringSubmatch(readme)
 	if len(matches) > 0 {
-		name = matches[nameIndex]
+		return matches[nameIndex]
 	}
-	return name
+
+	return ""
 }

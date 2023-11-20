@@ -67,5 +67,6 @@ func FetchOrgRepos(org GithubOrgConfig) (out []repos.RepoDetails, err error) {
 			}
 		}
 	}
+
 	return out, nil
 }

@@ -24,12 +24,14 @@ func (r *Repository) Process() error {
 	if err != nil {
 		return err
 	}
+
 	r.Details.DefaultBranch = defaultBranch
 
 	newCommits, err := project.NewCommits()
 	if err != nil {
 		return err
 	}
+
 	r.Details.NewCommits = newCommits
 
 	tags, err := project.Tags()
@@ -66,5 +68,6 @@ func (r *Repository) Process() error {
 	r.readme = &repos.Readme{Body: readmeContent}
 	r.Details.Snap = r.readme.LinkedSnap()
 	r.Details.Charm = r.readme.LinkedCharm()
+
 	return err
 }

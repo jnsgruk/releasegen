@@ -43,9 +43,9 @@ func (r *Repository) Process() error {
 	releases, _, err := client.Repositories.ListReleases(ctx, r.org, r.Details.Name, opts)
 	if err != nil {
 		return fmt.Errorf(
-			"error listing releases for repo '%s/%s/%s': %s", r.org, r.team, r.Details.Name, err.Error(),
-		)
-	} else if len(releases) > 0 {
+	}
+
+	if len(releases) > 0 {
 		// Iterate over the releases in the Github repo
 		for _, rel := range releases {
 			r.Details.Releases = append(r.Details.Releases, &repos.Release{
@@ -116,8 +116,10 @@ func (r *Repository) IsArchived() bool {
 			"error while checking archived status for repo '%s/%s/%s': %s",
 			r.org, r.team, r.Details.Name, err.Error(),
 		)
+
 		return false
 	}
+
 	return repoObject.GetArchived()
 }
 
@@ -125,6 +127,7 @@ func (r *Repository) IsArchived() bool {
 // its contents as a string.
 func (r *Repository) fetchReadmeContent() (string, error) {
 	client := githubClient()
+
 	readme, _, err := client.Repositories.GetReadme(context.Background(), r.org, r.Details.Name, nil)
 	if err != nil {
 		return "", fmt.Errorf("error getting README for repo '%s/%s': %s", r.org, r.Details.Name, err.Error())
@@ -134,6 +137,7 @@ func (r *Repository) fetchReadmeContent() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting README content for repo '%s/%s'", r.org, r.Details.Name)
 	}
+
 	return content, nil
 }
 
@@ -147,5 +151,6 @@ func renderReleaseBody(body string) string {
 	// Render the Markdown to HTML
 	md := []byte(body)
 	normalised := markdown.NormalizeNewlines(md)
+
 	return string(markdown.ToHTML(normalised, nil, nil))
 }

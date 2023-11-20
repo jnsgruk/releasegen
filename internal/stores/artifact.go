@@ -44,6 +44,7 @@ func NewArtifact(name string, r *artifactDetails) *Artifact {
 			artifact.Channels = append(artifact.Channels, channel)
 		}
 	}
+
 	return artifact
 }
 

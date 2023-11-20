@@ -49,7 +49,9 @@ func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
 			// If the project does use Git, add the project name to the output array
 			projects = append(projects, gjson.Get(value.Raw, "name").String())
 		}
+
 		return true
 	})
-	return projects, err
+
+	return projects, nil
 }

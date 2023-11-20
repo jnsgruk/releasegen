@@ -59,6 +59,7 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 	}
 
 	p.defaultBranch = branch
+
 	return p.defaultBranch, nil
 }
 
@@ -80,7 +81,8 @@ func (p *Project) NewCommits() (int, error) {
 	if tagDecorationRow.Text() == branchDecorationRow.Text() {
 		return 0, nil
 	}
-	// Return the number of commits between the latest tag and the default branch
+
+	// Return the number of commits between the latest tag and the default branch.
 	return branchDecorationRow.NextUntilSelection(tagDecorationRow).Length() + 1, nil
 }
 
@@ -130,9 +132,12 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 
 			tags = append(tags, tag)
 		})
+
 		return true
 	})
+
 	p.tags = tags
+
 	return p.tags, nil
 }
 
@@ -140,13 +145,16 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 // representation of the page
 func (p *Project) fetchProjectPage() error {
 	if p.projectPage == nil {
-		projectUrl := fmt.Sprintf("https://git.launchpad.net/%s", p.Name)
-		page, err := parseWebpage(projectUrl)
+		projectURL := fmt.Sprintf("https://git.launchpad.net/%s", p.Name)
+
+		page, err := parseWebpage(projectURL)
 		if err != nil {
 			return fmt.Errorf("could not fetch launchpad project page %s: %v", p.Name, err)
 		}
+
 		p.projectPage = page
 	}
+
 	return nil
 }
 
@@ -222,5 +230,9 @@ func parseWebpage(url string) (*goquery.Document, error) {
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
-	return doc, err
+	if err != nil {
+		return nil, fmt.Errorf("error creating a valid document from fetched page: %w", err)
+	}
+
+	return doc, nil
 }
