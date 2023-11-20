@@ -31,7 +31,8 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 		ghRepos := []*Repository{}
 
 		// Iterate over repositories, populating release info for each.
-		for _, r := range orgRepos {
+		for _, orgRepo := range orgRepos {
+			r := orgRepo
 			// Check if the name of the repository is in the ignore list or private.
 			if slices.Contains(org.IgnoredRepos, *r.Name) || *r.Private {
 				continue
