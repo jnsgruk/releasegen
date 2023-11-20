@@ -1,0 +1,21 @@
+linters:
+  enable-all: true
+  # Disable specific linter
+  # https://golangci-lint.run/usage/linters/#disabled-by-default
+  disable:
+    - depguard
+    - exhaustivestruct
+    - exhaustruct
+    - goerr113
+    - gosec
+    - varnamelen
+    # Deprecated linters
+    - golint
+    - ifshort
+    - structcheck
+    - maligned
+    - varcheck
+    - deadcode
+    - nosnakecase
+    - interfacer
+    - scopelint
