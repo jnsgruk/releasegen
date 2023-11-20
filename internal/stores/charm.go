@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,9 +11,13 @@ import (
 )
 
 // FetchCharmDetails fetches the Json representing charm information by querying the Charmhub API.
-func FetchCharmDetails(name string) (*artifactDetails, error) {
-	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
-	res, err := http.Get(apiUrl)
+func FetchCharmDetails(name string) (*ArtifactDetails, error) {
+	apiURL := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
+
+	client := &http.Client{}
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, apiURL, nil)
+
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, errors.New("failed to contact the store api")
 	}

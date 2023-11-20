@@ -1,6 +1,7 @@
 package launchpad
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -30,7 +31,7 @@ func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
 
 	client := http.Client{Timeout: time.Second * 5}
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return nil, enumerateProjectGroupError(err)
 	}
