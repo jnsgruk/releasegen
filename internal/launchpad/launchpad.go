@@ -49,6 +49,7 @@ func enumerateProjectGroup(projectGroup string) ([]string, error) {
 
 	// Parse the result as JSON, grab the "entries" key.
 	result := gjson.Get(string(body), "entries")
+	projects := []string{}
 
 	// Iterate over the entries.
 	result.ForEach(func(key, value gjson.Result) bool {
