@@ -8,7 +8,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// FetchCharmDetails fetches the Json representing charm information by querying the Charmhub API
+// FetchCharmDetails fetches the Json representing charm information by querying the Charmhub API.
 func FetchCharmDetails(name string) (*artifactDetails, error) {
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/charms/info/%s?fields=channel-map,result.store-url", name)
 	res, err := http.Get(apiUrl)

@@ -97,16 +97,16 @@ func buildVersion(version, commit, date string) string {
 }
 
 func main() {
-	// Set the default config file name/type
+	// Set the default config file name/type.
 	viper.SetConfigName("releasegen")
 	viper.SetConfigType("yaml")
 
-	// Add some default config paths
+	// Add some default config paths.
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.config")
 	viper.AddConfigPath("/etc/releasegen")
 
-	// Setup environment variable parsing
+	// Setup environment variable parsing.
 	viper.SetEnvPrefix("releasegen")
 	viper.MustBindEnv("token")
 

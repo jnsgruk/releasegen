@@ -13,7 +13,7 @@ import (
 var ghClient *gh.Client
 
 // GithubOrgConfig contains fields used in releasegen's config.yaml file to configure
-// its behaviour when generating reports about Github repositories
+// its behaviour when generating reports about Github repositories.
 type GithubOrgConfig struct {
 	Org          string   `mapstructure:"org"`
 	Teams        []string `mapstructure:"teams"`

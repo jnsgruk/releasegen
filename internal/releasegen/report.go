@@ -9,14 +9,14 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-// ReleaseReport is a representation of the output of releasegen
+// ReleaseReport is a representation of the output of releasegen.
 type ReleaseReport []*TeamDetails
 
-// GenerateReport takes a given config, and generates the output JSON
+// GenerateReport takes a given config, and generates the output JSON.
 func GenerateReport(conf *ReleasegenConfig) ReleaseReport {
 	teams := ReleaseReport{}
 
-	// Iterate over the teams specified in the config file
+	// Iterate over the teams specified in the config file.
 	for _, t := range conf.Teams {
 		team := &Team{
 			Details: &TeamDetails{
@@ -36,7 +36,7 @@ func GenerateReport(conf *ReleasegenConfig) ReleaseReport {
 	return teams
 }
 
-// Dump is used to create a pretty-printed JSON version of a ReleaseReport
+// Dump is used to create a pretty-printed JSON version of a ReleaseReport.
 func (r ReleaseReport) Dump() {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)

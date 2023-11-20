@@ -16,11 +16,10 @@ type LaunchpadConfig struct {
 	IgnoredRepos  []string `mapstructure:"ignores"`
 }
 
-// enumerateProjectGroup lists the projects that are part of the specified project group
+// enumerateProjectGroup lists the projects that are part of the specified project group.
 func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
 	url := fmt.Sprintf("https://api.launchpad.net/devel/%s/projects", projectGroup)
 
-	// TODO: Add a retry here?
 	client := http.Client{Timeout: time.Second * 5}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -39,14 +38,14 @@ func enumerateProjectGroup(projectGroup string) (projects []string, err error) {
 		return nil, err
 	}
 
-	// Parse the result as JSON, grab the "entries" key
+	// Parse the result as JSON, grab the "entries" key.
 	result := gjson.Get(string(body), "entries")
 
-	// Iterate over the entries
+	// Iterate over the entries.
 	result.ForEach(func(key, value gjson.Result) bool {
-		// If the entry doesn't use Git as it's VCS, move on
+		// If the entry doesn't use Git as it's VCS, move on.
 		if vcs := gjson.Get(value.Raw, "vcs").String(); vcs == "Git" {
-			// If the project does use Git, add the project name to the output array
+			// If the project does use Git, add the project name to the output array.
 			projects = append(projects, gjson.Get(value.Raw, "name").String())
 		}
 

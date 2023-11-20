@@ -7,7 +7,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// Artifact holds information about an artifact in a Canonical store (e.g. a snap or charm)
+// Artifact holds information about an artifact in a Canonical store (e.g. a snap or charm).
 type Artifact struct {
 	Name     string     `json:"name"`
 	Url      string     `json:"url"`
@@ -23,7 +23,7 @@ func NewArtifact(name string, r *artifactDetails) *Artifact {
 		Url:  r.StoreURL,
 	}
 
-	// Populate the artifact's releases, tracks and channels using the info from the store
+	// Populate the artifact's releases, tracks and channels using the info from the store.
 	for index := range r.Tracks {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", r.ReleaseTimes[index].String())
 		track := r.Tracks[index].String()
@@ -48,7 +48,7 @@ func NewArtifact(name string, r *artifactDetails) *Artifact {
 	return artifact
 }
 
-// Release represents a given Release of an artifact in a Canonical Store
+// Release represents a given Release of an artifact in a Canonical Store.
 type Release struct {
 	Track     string `json:"track"`
 	Channel   string `json:"channel"`
@@ -56,7 +56,7 @@ type Release struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-// artifactDetails is used for storing the raw info fetched about an artifact from the store
+// ArtifactDetails is used for storing the raw info fetched about an artifact from the store.
 type artifactDetails struct {
 	StoreURL     string
 	Tracks       []gjson.Result

@@ -17,7 +17,7 @@ func FetchOrgRepos(org GithubOrgConfig) (out []repos.RepoDetails, err error) {
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: 1000}
 
-	// Iterate over the Github Teams, listing repos for each
+	// Iterate over the Github Teams, listing repos for each.
 	for _, team := range org.Teams {
 		// Lists the Github repositories that the 'ghTeam' has access to.
 		orgRepos, _, err := client.Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
@@ -27,15 +27,15 @@ func FetchOrgRepos(org GithubOrgConfig) (out []repos.RepoDetails, err error) {
 
 		ghRepos := []*Repository{}
 
-		// Iterate over repositories, populating release info for each
+		// Iterate over repositories, populating release info for each.
 		for _, r := range orgRepos {
-			// Check if the name of the repository is in the ignore list or private
+			// Check if the name of the repository is in the ignore list or private.
 			if slices.Contains(org.IgnoredRepos, *r.Name) || *r.Private {
 				continue
 			}
 
 			// See if we can find a repo in this team with the same name, if the repository has
-			// already been added, skip
+			// already been added, skip.
 			index := slices.IndexFunc(out, func(repo repos.RepoDetails) bool {
 				return repo.Name == *r.Name
 			})

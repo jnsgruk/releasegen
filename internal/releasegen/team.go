@@ -10,23 +10,23 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-// TeamDetails is the serialisable form of a real-life team
+// TeamDetails is the serialisable form of a real-life team.
 type TeamDetails struct {
 	Name  string              `json:"team"`
 	Repos []repos.RepoDetails `json:"repos"`
 }
 
-// Team represents a given "real-life Team"
+// Team represents a given "real-life Team".
 type Team struct {
 	Details *TeamDetails
 	config  TeamConfig
 }
 
-// Process populates a given team with the details of its Github/Launchpad repos
+// Process populates a given team with the details of its Github/Launchpad repos.
 func (t *Team) Process() error {
 	log.Printf("processing team: %s", t.config.Name)
 
-	// Iterate over the Github orgs for a given team
+	// Iterate over the Github orgs for a given team.
 	for _, org := range t.config.GithubConfig {
 		log.Printf("processing github org: %s\n", org.Org)
 

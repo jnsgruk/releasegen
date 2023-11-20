@@ -4,7 +4,7 @@ import (
 	"github.com/jnsgruk/releasegen/internal/stores"
 )
 
-// RepoDetails represents the serialisable form of a Repository for the Report
+// RepoDetails represents the serialisable form of a Repository for the Report.
 type RepoDetails struct {
 	Name          string           `json:"name"`
 	DefaultBranch string           `json:"default_branch"`
@@ -17,12 +17,12 @@ type RepoDetails struct {
 	Snap          *stores.Artifact `json:"snap"`
 }
 
-// Repository is an interface that provides common methods for different types of repository
+// Repository is an interface that provides common methods for different types of repository.
 type Repository interface {
 	Process() error
 }
 
-// Release refers to either Github Release, or a Launchpad Tag
+// Release refers to either Github Release, or a Launchpad Tag.
 type Release struct {
 	Id         int64  `json:"id"`
 	Version    string `json:"version"`
@@ -33,7 +33,7 @@ type Release struct {
 	CompareUrl string `json:"compare_url"`
 }
 
-// Commit represents a Git commit
+// Commit represents a Git commit.
 type Commit struct {
 	Sha       string `json:"sha"`
 	Author    string `json:"author"`

@@ -10,7 +10,7 @@ import (
 
 // FetchSnapDetails fetches the Json representing charm information by querying the Snapcraft API
 func FetchSnapDetails(name string) (*artifactDetails, error) {
-	// Query the Snapcraft API to obtain the charm information
+	// Query the Snapcraft API to obtain the charm information.
 	apiUrl := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url", name)
 
 	client := &http.Client{}

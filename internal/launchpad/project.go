@@ -11,6 +11,7 @@ import (
 )
 
 // Project is a representation of a Launchpad Project
+// Project is a representation of a Launchpad Project.
 type Project struct {
 	Name          string
 	defaultBranch string
@@ -19,14 +20,14 @@ type Project struct {
 	projectPage *goquery.Document
 }
 
-// Tags returns a list of tags for a Launchpad project
+// Tags returns a list of tags for a Launchpad project.
 func (p *Project) Tags() (tags []*Tag, err error) {
-	// If we've already fetched the tags on this run, then return them
+	// If we've already fetched the tags on this run, then return them.
 	if len(p.tags) > 0 {
 		return p.tags, nil
 	}
 
-	// Otherwise fetch the tags from launchpad
+	// Otherwise fetch the tags from launchpad.
 	tags, err = p.fetchTags()
 	if err != nil {
 		return nil, err
@@ -35,21 +36,21 @@ func (p *Project) Tags() (tags []*Tag, err error) {
 	return tags, nil
 }
 
-// DefaultBranch returns the default VCS branch for a Launchpad project
+// DefaultBranch returns the default VCS branch for a Launchpad project.
 func (p *Project) DefaultBranch() (branch string, err error) {
-	// If we've already populated the default branch, just return it
+	// If we've already populated the default branch, just return it.
 	if p.defaultBranch != "" {
 		return p.defaultBranch, nil
 	}
 
-	// Make sure the Project page data is present
+	// Make sure the Project page data is present.
 	if err = p.fetchProjectPage(); err != nil {
 		return "", err
 	}
 
 	// Find an option element with the selected attribute.
 	// Launchpad Git pages only contain one option element for selecting branch, the selected
-	// branch at page load time is the default branch
+	// branch at page load time is the default branch.
 	p.projectPage.Find("option[selected=selected]").Each(func(i int, s *goquery.Selection) {
 		branch = s.Text()
 	})
@@ -64,7 +65,7 @@ func (p *Project) DefaultBranch() (branch string, err error) {
 }
 
 // GetNewCommits parses the git log page for a Launchpad project and returns the number of
-// commits that have happened on the default branch since the last tag
+// commits that have happened on the default branch since the last tag.
 func (p *Project) NewCommits() (int, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/log", p.Name)
 
@@ -77,7 +78,7 @@ func (p *Project) NewCommits() (int, error) {
 	branchDecorationRow := commitTable.Find("a.branch-deco").First().Parent().Parent().Parent()
 	tagDecorationRow := commitTable.Find("a.tag-deco").First().Parent().Parent().Parent()
 
-	// If the decorations are on the same row, there are no commits between last tag and branch
+	// If the decorations are on the same row, there are no commits between last tag and branch.
 	if tagDecorationRow.Text() == branchDecorationRow.Text() {
 		return 0, nil
 	}
@@ -86,41 +87,41 @@ func (p *Project) NewCommits() (int, error) {
 	return branchDecorationRow.NextUntilSelection(tagDecorationRow).Length() + 1, nil
 }
 
-// fetchTags scrapes the launchpad project repo page for a list of git tags
+// fetchTags scrapes the launchpad project repo page for a list of git tags.
 func (p *Project) fetchTags() (tags []*Tag, err error) {
-	// Populate the project with a scrapable version of its VCS page if not already fetched
+	// Populate the project with a scrapable version of its VCS page if not already fetched.
 	if err = p.fetchProjectPage(); err != nil {
 		return nil, err
 	}
 
-	// Get the row in the table that represents the header before the tags are listed
+	// Get the row in the table that represents the header before the tags are listed.
 	tagRowHeader := p.projectPage.Find("tr.nohover").FilterFunction(func(_ int, s *goquery.Selection) bool {
 		return s.Text() == "TagDownloadAuthorAge"
 	})
 
 	tagRowHeader.NextUntil("tr.nohover").EachWithBreak(func(_ int, row *goquery.Selection) bool {
-		// Only get the first three tags
+		// Only get the first three tags.
 		if len(tags) == 3 {
 			return false
 		}
 
-		// Iterate over the links, each one is either a link to a tag or a commit
+		// Iterate over the links, each one is either a link to a tag or a commit.
 		row.Find("a").Each(func(i int, l *goquery.Selection) {
-			// Skip odd numbers, as these are links to commits
+			// Skip odd numbers, as these are links to commits.
 			if i%2 != 0 {
 				return
 			}
 
-			// Grab the tag name from the only query parameter in the url
+			// Grab the tag name from the only query parameter in the url.
 			href, exists := l.Attr("href")
 			if !exists {
 				return
 			}
 
-			// Assign the tag name to the value of the href param
+			// Assign the tag name to the value of the href param.
 			tagName := strings.Split(href, "=")[1]
 
-			// We only consider tags with the name 'rev...' so bail if this isn't one
+			// We only consider tags with the name 'rev...' so bail if this isn't one.
 			if !strings.HasPrefix(tagName, "rev") {
 				return
 			}
@@ -142,7 +143,7 @@ func (p *Project) fetchTags() (tags []*Tag, err error) {
 }
 
 // fetchProjectPage fetches the project page, and assigns the project's projectPage to a parsed
-// representation of the page
+// representation of the page.
 func (p *Project) fetchProjectPage() error {
 	if p.projectPage == nil {
 		projectURL := fmt.Sprintf("https://git.launchpad.net/%s", p.Name)
@@ -158,7 +159,7 @@ func (p *Project) fetchProjectPage() error {
 	return nil
 }
 
-// fetchReadmeContent fetches the content of a README.md for a project if it has one
+// fetchReadmeContent fetches the content of a README.md for a project if it has one.
 func (p *Project) fetchReadmeContent() (string, error) {
 	url := fmt.Sprintf("https://git.launchpad.net/%s/plain/README.md", p.Name)
 	res, err := http.Get(url)
@@ -171,7 +172,7 @@ func (p *Project) fetchReadmeContent() (string, error) {
 		return "", fmt.Errorf("unexpected status code %d fetching %s", res.StatusCode, url)
 	}
 
-	// Parse the useful information from the response
+	// Parse the useful information from the response.
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", fmt.Errorf("cannot read response body while fetching %s", url)
@@ -180,7 +181,7 @@ func (p *Project) fetchReadmeContent() (string, error) {
 	return string(resBody), nil
 }
 
-// Tag is a representation of a git Tag in Launchpad
+// Tag is a representation of a git Tag in Launchpad.
 type Tag struct {
 	Name      string
 	Commit    string
@@ -189,9 +190,9 @@ type Tag struct {
 	project string
 }
 
-// Process populates the tag with details of the relevant commit
+// Process populates the tag with details of the relevant commit.
 func (t *Tag) Process() error {
-	// Construct a URL for the project commit page, including a tag if specified
+	// Construct a URL for the project commit page, including a tag if specified.
 	url := fmt.Sprintf("https://git.launchpad.net/%s/commit/?h=%s", t.project, t.Name)
 
 	doc, err := parseWebpage(url)
@@ -199,15 +200,15 @@ func (t *Tag) Process() error {
 		return fmt.Errorf("could not fetch tag page %s: %v", url, err)
 	}
 
-	// Find the commit hash for the tag
+	// Find the commit hash for the tag.
 	commitTable := doc.Find("table.commit-info")
 	commit := commitTable.Find("a").First().Text()
 	t.Commit = commit
 
-	// Find the timestamp for the tag/commit in question
+	// Find the timestamp for the tag/commit in question.
 	ts := commitTable.Find("td.right").First().Text()
 
-	// Parse the Launchpad timestamp into a time.Time
+	// Parse the Launchpad timestamp into a time.Time.
 	timestamp, err := time.Parse("2006-01-02 15:04:05 -0700", ts)
 	if err != nil {
 		return err
@@ -217,7 +218,7 @@ func (t *Tag) Process() error {
 	return nil
 }
 
-// parseWebpage fetches a URL and returns a goquery.Document for scraping
+// parseWebpage fetches a URL and returns a goquery.Document for scraping.
 func parseWebpage(url string) (*goquery.Document, error) {
 	res, err := http.Get(url)
 	if err != nil {
