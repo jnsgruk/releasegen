@@ -7,7 +7,6 @@ linters:
     - exhaustivestruct
     - exhaustruct
     - goerr113
-    - gosec
     - varnamelen
     # Deprecated linters
     - golint
