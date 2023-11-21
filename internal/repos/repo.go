@@ -8,15 +8,14 @@ import (
 
 // RepoDetails represents the serialisable form of a Repository for the Report.
 type RepoDetails struct {
-	Name          string           `json:"name"`
-	DefaultBranch string           `json:"defaultBranch"`
-	NewCommits    int              `json:"newCommits"`
-	URL           string           `json:"url"`
-	Releases      []*Release       `json:"releases"`
-	Commits       []*Commit        `json:"commits"`
-	CiActions     []string         `json:"ciActions"`
-	Charm         *stores.Artifact `json:"charm"`
-	Snap          *stores.Artifact `json:"snap"`
+	Name       string           `json:"name"`
+	NewCommits int              `json:"newCommits"`
+	URL        string           `json:"url"`
+	Releases   []*Release       `json:"releases"`
+	Commits    []*Commit        `json:"commits"`
+	CiActions  []string         `json:"ciActions"`
+	Charm      *stores.Artifact `json:"charm"`
+	Snap       *stores.Artifact `json:"snap"`
 }
 
 // Repository is an interface that provides common methods for different types of repository.

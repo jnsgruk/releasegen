@@ -9,9 +9,10 @@ import (
 
 // Repository represents a single Launchpad git Repository.
 type Repository struct {
-	Details      repos.RepoDetails
-	project      *Project
-	projectGroup string
+	Details       repos.RepoDetails
+	project       *Project
+	projectGroup  string
+	defaultBranch string
 }
 
 // Process populates the Repository with details of its tags, default branch, and commits.
@@ -65,7 +66,7 @@ func (r *Repository) processReleases(ctx context.Context) error {
 			Title:      t.Name,
 			Body:       "",
 			URL:        fmt.Sprintf("%s/tag/?h=%s", r.Details.URL, t.Name),
-			CompareURL: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.URL, t.Commit, r.Details.DefaultBranch),
+			CompareURL: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.URL, t.Commit, r.defaultBranch),
 		})
 	}
 
@@ -80,7 +81,7 @@ func (r *Repository) processDefaultBranch(ctx context.Context) error {
 		return err
 	}
 
-	r.Details.DefaultBranch = defaultBranch
+	r.defaultBranch = defaultBranch
 
 	return nil
 }

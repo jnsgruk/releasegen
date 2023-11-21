@@ -59,13 +59,13 @@ func getTeamRepos(org OrgConfig, team string, orgRepos *[]repos.RepoDetails) ([]
 
 		repo := &Repository{
 			Details: repos.RepoDetails{
-				Name:          *r.Name,
-				DefaultBranch: *r.DefaultBranch,
-				URL:           *r.HTMLURL,
+				Name: *r.Name,
+				URL:  *r.HTMLURL,
 			},
-			org:    org.Org,
-			team:   team,
-			client: org.GithubClient(),
+			org:           org.Org,
+			team:          team,
+			client:        org.GithubClient(),
+			defaultBranch: *r.DefaultBranch,
 		}
 		ghRepos = append(ghRepos, repo)
 

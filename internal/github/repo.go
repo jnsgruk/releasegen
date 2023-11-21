@@ -24,10 +24,11 @@ var (
 
 // Repository represents a single Github Repository.
 type Repository struct {
-	Details repos.RepoDetails
-	org     string // The Github Org that owns the repo.
-	team    string // The Github team, within the org, that has rights over the repo.
-	client  *gh.Client
+	Details       repos.RepoDetails
+	org           string // The Github Org that owns the repo.
+	team          string // The Github team, within the org, that has rights over the repo.
+	client        *gh.Client
+	defaultBranch string
 }
 
 // Process populates the Repository with details of its releases, and commits.
@@ -116,7 +117,7 @@ func (r *Repository) processReleases(ctx context.Context) error {
 			Title:      rel.GetName(),
 			Body:       renderReleaseBody(rel.GetBody()),
 			URL:        rel.GetHTMLURL(),
-			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.Details.DefaultBranch),
+			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.defaultBranch),
 		})
 	}
 
@@ -129,7 +130,7 @@ func (r *Repository) processCommitsSinceRelease(ctx context.Context) error {
 	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
 	// Add the commit delta between last release and default branch.
 	comparison, _, err := r.client.Repositories.CompareCommits(
-		ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.Details.DefaultBranch, opts,
+		ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.defaultBranch, opts,
 	)
 	if err != nil {
 		return errors.New("error getting commit comparison for release")

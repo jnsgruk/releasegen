@@ -53,9 +53,8 @@ func getProjectGroupRepos(pg string, config Config, pgRepos *[]repos.RepoDetails
 		// Create a new repository, add to the list of repos for the project group
 		repo := &Repository{
 			Details: repos.RepoDetails{
-				Name:          p,
-				DefaultBranch: "",
-				URL:           fmt.Sprintf("https://git.launchpad.net/%s", p),
+				Name: p,
+				URL:  fmt.Sprintf("https://git.launchpad.net/%s", p),
 			},
 			projectGroup: pg,
 		}
