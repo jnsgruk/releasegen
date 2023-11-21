@@ -18,8 +18,9 @@ type TeamDetails struct {
 
 // Team represents a given "real-life Team".
 type Team struct {
-	Details *TeamDetails
-	config  TeamConfig
+	Details     *TeamDetails
+	config      TeamConfig
+	githubToken string
 }
 
 // Process populates a given team with the details of its Github/Launchpad repos.
@@ -29,6 +30,9 @@ func (t *Team) Process() error {
 	// Iterate over the Github orgs for a given team.
 	for _, org := range t.config.GithubConfig {
 		log.Printf("processing github org: %s\n", org.Org)
+
+		// Set the Github token on the org so it can access the API
+		org.SetGithubToken(t.githubToken)
 
 		ghRepos, err := github.FetchOrgRepos(org)
 		if err != nil {

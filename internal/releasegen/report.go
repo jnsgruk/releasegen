@@ -23,7 +23,8 @@ func GenerateReport(conf *Config) ReleaseReport {
 				Name:  t.Name,
 				Repos: []repos.RepoDetails{},
 			},
-			config: *t,
+			config:      *t,
+			githubToken: conf.githubToken,
 		}
 		teams = append(teams, team.Details)
 

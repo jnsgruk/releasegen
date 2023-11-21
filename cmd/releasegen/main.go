@@ -99,10 +99,12 @@ func main() {
 				return errors.New("error parsing releasegen config file")
 			}
 
-			if viper.Get("token") == nil {
+			ghToken := viper.GetString("token")
+			if ghToken == "" {
 				return errors.New("environment variable RELEASEGEN_TOKEN not set")
 			}
 
+			conf.SetGithubToken(ghToken)
 			teams := releasegen.GenerateReport(conf)
 			teams.Dump()
 
