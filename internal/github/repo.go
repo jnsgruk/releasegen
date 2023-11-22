@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/gomarkdown/markdown"
 	gh "github.com/google/go-github/v54/github"
@@ -16,6 +18,8 @@ const githubReleasesPerRepo = 3
 var (
 	// prRegexp is used to find Github PR URLs in blocks of Markdown/HTML.
 	prRegexp = regexp.MustCompile(`(https://github.com/canonical/.+/pull/([0-9]+))`)
+	// prShortRegexp is used to find Github PR's mentioned as '#<PR>' (#34 for example).
+	prShortRegexp = regexp.MustCompile(`#([0-9]+)`)
 	// userRegexp is used to find Twitter/Github style mentions such as '@JoeBloggs' in Markdown/HTML.
 	userRegexp = regexp.MustCompile(`(\A|\s)@([\w-_]+)`)
 	// errFetchReadme is returned when a README could not be fetched or parsed.
@@ -115,7 +119,7 @@ func (r *Repository) processReleases(ctx context.Context) error {
 			Version:    rel.GetTagName(),
 			Timestamp:  rel.CreatedAt.Time.Unix(),
 			Title:      rel.GetName(),
-			Body:       renderReleaseBody(rel.GetBody()),
+			Body:       renderReleaseBody(rel.GetBody(), r),
 			URL:        rel.GetHTMLURL(),
 			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.GetTagName(), r.defaultBranch),
 		})
@@ -159,7 +163,7 @@ func (r *Repository) processCommits(ctx context.Context) error {
 			Sha:       commit.GetSHA(),
 			Author:    commit.GetCommit().GetAuthor().GetName(),
 			Timestamp: ts.GetTime().Unix(),
-			Message:   commit.GetCommit().GetMessage(),
+			Message:   renderReleaseBody(commit.GetCommit().GetMessage(), r),
 			URL:       commit.GetHTMLURL(),
 		})
 	}
@@ -168,11 +172,33 @@ func (r *Repository) processCommits(ctx context.Context) error {
 }
 
 // renderReleaseBody transforms a Markdown string from a Github Release into HTML.
-func renderReleaseBody(body string) string {
+func renderReleaseBody(body string, repo *Repository) string {
 	// Preprocess any Pull Request links in the Markdown body.
 	body = prRegexp.ReplaceAllString(body, `<a href="${1}">#${2}</a>`)
 	// Preprocess any user mentions in the Markdown body.
-	body = userRegexp.ReplaceAllString(body, `${1}<a href="http://github.com/${2}">@${2}</a>`)
+	body = userRegexp.ReplaceAllString(body, `${1}<a href="https://github.com/${2}">@${2}</a>`)
+
+	// Preprocess any mentions of PR's using the shorthand notation #<PR>
+	body = prShortRegexp.ReplaceAllStringFunc(body, func(s string) string {
+		// Grab the number of the PR; if we fail to parse the number just return the original str.
+		num, err := strconv.Atoi(s[1:])
+		if err != nil {
+			return s
+		}
+
+		// Construct the possible URL of the PR.
+		url := fmt.Sprintf("https://github.com/%s/%s/pull/%d", repo.org, repo.Details.Name, num)
+
+		// Make a HEAD request to the proposed PR URL, if it's not 200 OK, assume the PR reference
+		// is a false positive and return the original string.
+		res, err := http.Head(url) //nolint
+		if err != nil || res.StatusCode != http.StatusOK {
+			return s
+		}
+
+		// All good! We found the PR so return the link.
+		return fmt.Sprintf(`<a href="%s">#%d</a>`, url, num)
+	})
 
 	// Render the Markdown to HTML.
 	md := []byte(body)
