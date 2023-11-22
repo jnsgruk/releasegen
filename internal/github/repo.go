@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/gomarkdown/markdown"
@@ -33,6 +33,7 @@ type Repository struct {
 	team          string // The Github team, within the org, that has rights over the repo.
 	client        *gh.Client
 	defaultBranch string
+	pulls         []int // A slice of PR IDs the are associated with the repo
 }
 
 // Process populates the Repository with details of its releases, and commits.
@@ -41,6 +42,9 @@ func (r *Repository) Process(ctx context.Context) error {
 	if r.IsArchived(ctx) {
 		return nil
 	}
+
+	// Populate the list of Pull Request IDs
+	r.pulls = r.PullRequestIDs(ctx)
 
 	// Iterate over the releases in the Github repo and add them to our repository's details.
 	err := r.processReleases(ctx)
@@ -189,15 +193,13 @@ func renderReleaseBody(body string, repo *Repository) string {
 		// Construct the possible URL of the PR.
 		url := fmt.Sprintf("https://github.com/%s/%s/pull/%d", repo.org, repo.Details.Name, num)
 
-		// Make a HEAD request to the proposed PR URL, if it's not 200 OK, assume the PR reference
-		// is a false positive and return the original string.
-		res, err := http.Head(url) //nolint
-		if err != nil || res.StatusCode != http.StatusOK {
-			return s
+		// Check if the number is in the list of PR IDs for the repo
+		if slices.Contains(repo.pulls, num) {
+			// Return a processed URL for the PR
+			return fmt.Sprintf(`<a href="%s">#%d</a>`, url, num)
 		}
 
-		// All good! We found the PR so return the link.
-		return fmt.Sprintf(`<a href="%s">#%d</a>`, url, num)
+		return s
 	})
 
 	// Render the Markdown to HTML.
@@ -205,4 +207,28 @@ func renderReleaseBody(body string, repo *Repository) string {
 	normalised := markdown.NormalizeNewlines(md)
 
 	return string(markdown.ToHTML(normalised, nil, nil))
+}
+
+// GetPullRequestIDs returns a list of all pull request numbers on the repo
+func (r *Repository) PullRequestIDs(ctx context.Context) []int {
+	opts := &gh.PullRequestListOptions{
+		// Fetch both open and closed PRs
+		State: "all",
+		// We're only listing the last 3 releases/commits which are unlikely
+		// to be targeting PRs more than 10 PRs ago, so take risk!
+		ListOptions: gh.ListOptions{PerPage: 10},
+	}
+
+	// Fetch all open and closed PRs
+	pulls, _, err := r.client.PullRequests.List(ctx, r.org, r.Details.Name, opts)
+	if err != nil {
+		return []int{}
+	}
+
+	ids := []int{}
+	for _, v := range pulls {
+		ids = append(ids, v.GetNumber())
+	}
+
+	return ids
 }
