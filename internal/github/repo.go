@@ -173,9 +173,9 @@ func (r *Repository) processCommits(ctx context.Context) error {
 // renderReleaseBody transforms a Markdown string from a Github Release into HTML.
 func renderReleaseBody(body string, repo *Repository) string {
 	// Preprocess any Pull Request links in the Markdown body.
-	body = prRegexp.ReplaceAllString(body, `<a href="${1}">#${2}</a>`)
+	body = prRegexp.ReplaceAllString(body, `<a target="_blank" href="${1}">#${2}</a>`)
 	// Preprocess any user mentions in the Markdown body.
-	body = userRegexp.ReplaceAllString(body, `${1}<a href="https://github.com/${2}">@${2}</a>`)
+	body = userRegexp.ReplaceAllString(body, `${1}<a target="_blank" href="https://github.com/${2}">@${2}</a>`)
 
 	// Preprocess any mentions of PR's using the shorthand notation #<PR>
 	body = prShortRegexp.ReplaceAllStringFunc(body, func(s string) string {
@@ -188,7 +188,7 @@ func renderReleaseBody(body string, repo *Repository) string {
 		// Construct the possible URL of the PR.
 		url := fmt.Sprintf("https://github.com/%s/%s/pull/%d", repo.org, repo.Details.Name, num)
 
-		return fmt.Sprintf(`<a href="%s">#%d</a>`, url, num)
+		return fmt.Sprintf(`<a target="_blank" href="%s">#%d</a>`, url, num)
 	})
 
 	// Render the Markdown to HTML.
