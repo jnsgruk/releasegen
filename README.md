@@ -1,7 +1,7 @@
 # releasegen
 
-This is a tool used for generating JSON reports containing details about Github and Launchpad
-version control repositories.
+This is a tool used for generating JSON reports containing details about Github, Launchpad, and
+Gitea version control repositories.
 
 ## Why?
 
@@ -22,8 +22,8 @@ to generate the static site.
 ## Usage
 
 ```
-releasegen is a utility for enumerating Github and Launchpad releases/tags from
-specified Github Organisations or Launchpad project groups.
+releasegen is a utility for enumerating Github, Launchpad, and Gitea releases/tags from
+specified Github Organisations, Launchpad project groups, and Gitea Organisations.
 
 This tool is configured using a single file in one of the three following locations:
 
@@ -96,6 +96,20 @@ teams:
       project-groups:
         - <project group>
         - <project group>
+
+    # (Optional) Gitea configuration for the team
+    gitea:
+      # (Required) The name of a Gitea Organisation
+      - org: <gitea organisation name>
+
+        # (Required) The URL of the Gitea instance, e.g. `https://opendev.org/`
+        url: <URL for the Gitea instance>
+
+        # (Optional) A list of repository names to ignore
+        ignores:
+          # List of repo names
+          - <repo>
+          - <repo>
 ```
 
 ## Development

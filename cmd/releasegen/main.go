@@ -19,9 +19,10 @@ var (
 )
 
 const (
-	shortDesc = "releasegen - a utility for enumerating Github and Launchpad releases"
-	longDesc  = ` releasegen is a utility for enumerating Github and Launchpad releases/tags
-from specified Github Organisations or Launchpad project groups.
+	shortDesc = "releasegen - a utility for enumerating Github, Launchpad, and Gitea releases"
+	longDesc  = ` releasegen is a utility for enumerating Github, Launchpad, and Gitea
+releases/tags from specified Github Organisations, Launchpad project groups, or Gitea
+organisations.
 
 This tool is configured using a single file in one of the three following locations:
 

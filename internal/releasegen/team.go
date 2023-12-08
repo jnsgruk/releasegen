@@ -7,6 +7,7 @@ import (
 
 	"github.com/jnsgruk/releasegen/internal/github"
 	"github.com/jnsgruk/releasegen/internal/launchpad"
+	"github.com/jnsgruk/releasegen/internal/gitea"
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
@@ -23,7 +24,7 @@ type Team struct {
 	githubToken string
 }
 
-// Process populates a given team with the details of its Github/Launchpad repos.
+// Process populates a given team with the details of its Github/Launchpad/Gitea repos.
 func (t *Team) Process() error {
 	log.Printf("processing team: %s", t.config.Name)
 
@@ -52,6 +53,18 @@ func (t *Team) Process() error {
 		}
 
 		t.Details.Repos = append(t.Details.Repos, lpRepos...)
+	}
+
+	// Iterate over the Gitea orgs.
+	for _, org := range t.config.GiteaConfig {
+		log.Printf("processing gitea org: %s\n", org.Org)
+	
+		odRepos, err := gitea.FetchOrgRepos(org)
+		if err != nil {
+			return fmt.Errorf("error populating gitea repos: %w", err)
+		}
+
+		t.Details.Repos = append(t.Details.Repos, odRepos...)
 	}
 
 	// Sort the repos by the last released.
