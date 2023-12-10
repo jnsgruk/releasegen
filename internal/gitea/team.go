@@ -24,16 +24,13 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 	// Lists the gitea repositories in the org.
 	for currentPage := 1; ; {
-		log.Printf("Getting page %d\n", currentPage)
-
 		opts := gitea.ListReposOptions{ListOptions: gitea.ListOptions{Page: currentPage, PageSize: giteaPerPage}}
 		gtRepos, resp, err := gtClient.ListUserRepos(org.Org, opts)
 		if err != nil {
 			return nil, fmt.Errorf("error listing repositories for gitea org: %s", org.Org)
 		}
-		if currentPage == resp.LastPage {
-			break
-		}
+
+		log.Printf("Processing page %d of %d\n", currentPage, resp.LastPage)
 
 		// Iterate over repositories, populating release info for each.
 		for _, oRepo := range gtRepos {
@@ -67,6 +64,13 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 			}
 		}
 
+		// opendev.org gives the actual last page right up until you're getting
+		// the last page, when it suddenly becomes zero, and next page is also
+		// zero, meaning that you just loop forever. It seems like this must be
+		// a Gitea bug? Work around it.
+		if currentPage == resp.LastPage || resp.LastPage == 0 {
+			break
+		}
 		currentPage = resp.NextPage
 	}	
 
