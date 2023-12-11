@@ -33,16 +33,13 @@ func (r *Repository) Process() error {
 
 	if len(r.Details.Releases) > 0 {
 		// Calculate the number of commits since the latest release.
-		err := r.processCommitsSinceRelease()
-		if err != nil {
-			return err
-		}
+		err = r.processCommitsSinceRelease()
 	} else {
 		// If there are no releases, get the latest commit instead.
-		err := r.processCommits()
-		if err != nil {
-			return err
-		}
+		err = r.processCommits()
+	}
+	if err != nil {
+		return err
 	}
 
 	// Populate the repository's README from Gitea, parse any linked snaps or charms.
