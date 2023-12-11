@@ -180,8 +180,7 @@ func (r *Repository) processCommits() error {
 // renderReleaseBody transforms a Markdown string from a Gitea Release into HTML.
 func renderReleaseBody(body string, repo *Repository) string {
 	// Render the Markdown to HTML.
-	md := []byte(body)
-	normalised := markdown.NormalizeNewlines(md)
+	normalised := markdown.NormalizeNewlines([]byte(body))
 
 	return string(markdown.ToHTML(normalised, nil, nil))
 }
