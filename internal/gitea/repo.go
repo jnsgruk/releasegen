@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/gomarkdown/markdown"
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-const giteaReleasesPerRepo = 3
+const releasesPerRepo = 3
 
 // Repository represents a single repository. Note that this might be a Gitea
 // Repository or it might be a folder in a Gitea Repository if the Repository
-// is a monorepo.
+// is a monorepo (`folder` will be non-empty in that case).
 type Repository struct {
 	Details       repos.RepoDetails
 	org           string // The Gitea Org that owns the repo.
@@ -25,7 +26,8 @@ type Repository struct {
 
 // Process populates the Repository with details of its releases, and commits.
 func (r *Repository) Process() error {
-	// Iterate over the releases in the Gitea repo and add them to our repository's details.
+	// Iterate over the releases in the Gitea repo and add them to our
+	// repository's details.
 	err := r.processReleases()
 	if err != nil {
 		return err
@@ -42,7 +44,8 @@ func (r *Repository) Process() error {
 		return err
 	}
 
-	// Populate the repository's README from Gitea, parse any linked snaps or charms.
+	// Populate the repository's README from Gitea and parse any linked snaps
+	// or charms.
 	err = r.parseReadme()
 	if err != nil {
 		return err
@@ -51,29 +54,28 @@ func (r *Repository) Process() error {
 	return nil
 }
 
-// parseReadme is a helper function to fetch the README from a Gitea repository and return
-// its contents as a string.
+// parseReadme is a helper function to fetch the README from a Gitea repository
+// and populates any linked Charms or Snaps in r.Details.
 func (r *Repository) parseReadme() error {
-	var readmeNames = []string {"README.md", "README.rst"}
-	var giteaReadme []byte
-	for _, rName := range readmeNames { 
+	names := []string{"README.md", "README.rst"}
+	var bytes []byte
+	for _, name := range names {
 		var err error
 		var fileName string
-		if r.folder == "" {
-			fileName = rName
-		} else {
-			fileName = fmt.Sprintf("%s/%s", r.folder, rName)
+		path := name
+		if r.folder != "" {
+			path = path.Join(r.folder, name)
 		}
-		giteaReadme, _, err = r.client.GetFile(r.org, r.Details.Name, r.defaultBranch, fileName, false)
+		bytes, _, err = r.client.GetFile(r.org, r.Details.Name, r.defaultBranch, fileName, false)
 		if err == nil {
 			break
 		}
 	}
-	if len(giteaReadme) == 0 {
+	if len(bytes) == 0 {
 		return errors.New("error getting README for repo")
 	}
 
-	content := string(giteaReadme)
+	content := string(bytes)
 
 	// Parse contents of README to identify associated snaps, charms.
 	readme := &repos.Readme{Body: content}
@@ -84,21 +86,23 @@ func (r *Repository) parseReadme() error {
 	return nil
 }
 
-// processReleases fetches a repository's releases from Gitea, then populates r.Details.Releases
-// with the information in the relevant format for releasegen.
+// processReleases fetches a repository's releases from Gitea, then populates
+// r.Details.Releases with the information in the relevant format for releasegen.
 func (r *Repository) processReleases() error {
-	// This currently gets all releases across the entire repository, even in a
-	// monorepo. It's not clear what happens with releases in a Gitea monorepo -
-	// for example, are they not used at all? Do they all start with the name of
-	// the 'subrepo'?
+	// TODO: This currently gets all releases across the entire repository, even
+	// in a monorepo. It's not clear what happens with releases in a Gitea
+	// monorepo - for example, are they not used at all? Do they all start with
+	// the name of the 'subrepo'?
 
-	isDraft := false
-	isPreRelease := false
-	opts := gitea.ListReleasesOptions{ListOptions: gitea.ListOptions{PageSize: giteaReleasesPerRepo}, IsDraft: &isDraft, IsPreRelease: &isPreRelease}
+	opts := gitea.ListReleasesOptions{
+		ListOptions: gitea.ListOptions{PageSize: releasesPerRepo},
+		IsDraft: gitea.OptionalBool(false),
+		IsPreRelease: gitea.OptionalBool(false)
+	}
 
 	releases, _, err := r.client.ListReleases(r.org, r.Details.Name, opts)
 	if err != nil {
-		return errors.New("error listing releases for repo")
+		return err
 	}
 
 	for _, rel := range releases {
@@ -109,28 +113,39 @@ func (r *Repository) processReleases() error {
 			Title:      rel.Title,
 			Body:       renderReleaseBody(rel.Note, r),
 			URL:        rel.URL,
-			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, rel.TagName, r.defaultBranch),
+			CompareURL: fmt.Sprintf(
+				"%s/compare/%s...%s", r.Details.URL, rel.TagName, r.defaultBranch
+			),
 		})
 	}
 
 	return nil
 }
 
-// processCommitsSinceRelease calculates the number of commits that have occurred on the default
-// branch of the repository since the last release, and populates the information in r.Details.
+// processCommitsSinceRelease calculates the number of commits that have
+// occurred on the default branch of the repository since the last release, and
+// populates the information in r.Details.
 func (r *Repository) processCommitsSinceRelease() error {
-	// This does not currently handle monorepos - see note about releases in
-	// `processReleases`. If there are releases in Gitea with a monorepo, then
-	// this function maybe needs to restrict the commits to ones where the tree
-	// overlaps - but maybe we actually want to know how many commits overall,
-	// because we want to count things like common code being adjusted.
+	// TODO: This does not currently handle monorepos - see note about releases
+	// in `processReleases`. If there are releases in Gitea with a monorepo,
+	// then this function maybe needs to restrict the commits to ones where the
+	// tree overlaps - but maybe we actually want to know how many commits
+	// overall, because we want to count things like common code being adjusted.
+
+	if !len(r.Details.Releases) {
+		return errors.New("processCommitsSinceRelease cannot be called if there are no releases!")
+	}
 
 	// Add the commit delta between last release and default branch.
 	latestRelease := r.Details.Releases[len(r.Details.Releases)-1]
-	opts := gitea.ListCommitOptions{ListOptions: gitea.ListOptions{PageSize: giteaReleasesPerRepo}, SHA: latestRelease.Version, Path: ""}
+	opts := gitea.ListCommitOptions{
+		ListOptions: gitea.ListOptions{PageSize: giteaReleasesPerRepo},
+		SHA: latestRelease.Version,
+		Path: ""
+	}
 	commits, _, err := r.client.ListRepoCommits(r.org, r.Details.Name, opts)
 	if err != nil {
-		return errors.New("error getting commits since release")
+		return err
 	}
 
 	r.Details.NewCommits = len(commits)
@@ -138,31 +153,32 @@ func (r *Repository) processCommitsSinceRelease() error {
 	return nil
 }
 
-// processCommits fetches the latest 3 commits to a repository and populates them into the repo
-// struct in the case that there are no releases identified.
+// processCommits fetches the latest commits to a repository and populates them
+// into the repo struct in the case that there are no releases identified.
 func (r *Repository) processCommits() error {
-	// This does not currently handle monorepos. It's not clear which commits
-	// should be counted in this case - only ones that have a tree that overlaps
-	// with the subfolder? All commits, as now? If there's common code, then
-	// all commits is probably truest to the single-repo meaning, but if there
-	// are commits that are only in a separate charm, then those probably should
-	// not be included.
+	// TODO: This does not currently handle monorepos. It's not clear which
+	// commits should be counted in this case - only ones that have a tree that
+	// overlaps with the subfolder? All commits, as now? If there's common code,
+	// then all commits is probably truest to the single-repo meaning, but if
+	// there are commits that are only in a separate charm, then those probably
+	// should not be included.
 
-	opts := gitea.ListCommitOptions{ListOptions: gitea.ListOptions{PageSize: giteaReleasesPerRepo}, SHA: r.defaultBranch, Path: ""}
+	opts := gitea.ListCommitOptions{
+		ListOptions: gitea.ListOptions{PageSize: giteaReleasesPerRepo},
+		SHA: r.defaultBranch,
+		Path: ""
+	}
 
-	// If there are no releases, get the latest commit instead.
 	commits, _, err := r.client.ListRepoCommits(r.org, r.Details.Name, opts)
 	if err != nil {
-		return errors.New("error listing commits for repository")
+		return err
 	}
 
 	// Iterate over the commits and append them to r.Details.Commits
 	for _, commit := range commits {
 		// Some commits don't have an author.
-		var name string
-		if commit.Author == nil {
-			name = ""
-		} else {
+		name := ""
+		if commit.Author != nil {
 			name = commit.Author.FullName
 		}
 		r.Details.Commits = append(r.Details.Commits, &repos.Commit{

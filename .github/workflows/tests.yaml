@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.20']
+    
+    name: Go ${{ matrix.go }}
+    steps:
+      - uses: actions/checkout@v3
+    
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+    
+      - name: Test and build
+        run: |
+          go test -race ./... -check.vv
+          go build ./cmd/releasegen
+
+  format:
+    runs-on: ubuntu-latest
+
+    name: Format check
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Ensure no formatting changes
+      run: |
+        go fmt ./...
+        git diff --exit-code

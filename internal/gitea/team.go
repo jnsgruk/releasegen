@@ -10,56 +10,61 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-const giteaPerPage = 10
+const reposPerPage = 25  // Get this many repos from the API at once.
+const maxPages = 100 // Give up after getting this many pages.
 
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
 // owned by the Gitea org.
 func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	orgRepos := []repos.RepoDetails{}
 
-	gtClient, err := org.GiteaClient()
+	client, err := org.GiteaClient()
 	if err != nil {
-		return nil, fmt.Errorf("error creating gitea client: %s", err)
+		return nil, fmt.Errorf("error creating gitea client: %w", err)
 	}
 
 	// Lists the gitea repositories in the org.
-	for currentPage := 1; ; {
-		opts := gitea.ListReposOptions{ListOptions: gitea.ListOptions{Page: currentPage, PageSize: giteaPerPage}}
-		gtRepos, resp, err := gtClient.ListUserRepos(org.Org, opts)
+	for currentPage := 1, pageCount := 0; pageCount < maxPages; pageCount += 1 {
+		opts := gitea.ListReposOptions{
+			ListOptions: gitea.ListOptions{Page: currentPage, PageSize: reposPerPage}
+		}
+		userRepos, resp, err := client.ListUserRepos(org.Org, opts)
 		if err != nil {
-			return nil, fmt.Errorf("error listing repositories for gitea org: %s", org.Org)
+			return nil, err
 		}
 
 		log.Printf("Processing page %d of %d\n", currentPage, resp.LastPage)
 
 		// Iterate over repositories, populating release info for each.
-		for _, oRepo := range gtRepos {
-			r := oRepo
-			// Check if the name of the repository is in the ignore list or private or archived, or already processed.
-			if slices.Contains(org.IgnoredRepos, r.Name) || r.Private || r.Archived || repos.RepoInSlice(orgRepos, r.Name) {
+		for _, repo := range userRepos {
+			// Check if the name of the repository is in the ignore list or
+			// private or archived, or already processed.
+			if slices.Contains(org.IgnoredRepos, repo.Name) || \
+					repo.Private || rep.Archived || \
+					repos.RepoInSlice(userRepos, r.Name) {
 				continue
 			}
 
-			// This might actually be a monorepo. We don't have a definitive way to
-			// know that, for now, assume it is if there is a "charms" folder at the
-			// top level.
-			// TODO: Figure out some better way of determining this. Maybe it just
-			// has to be in the configuration file? If it is something like this,
-			// should we also look for a "snaps" folder as well?
-			_, _, err = gtClient.GetFile(org.Org, r.Name, r.DefaultBranch, "charms", false)
-			is_monorepo := err == nil
+			// This might actually be a monorepo. We don't have a definitive way
+			// to know that, for now, assume it is if there is a "charms" folder
+			// at the top level.
+			// TODO: Figure out some better way of determining this. Maybe it
+			// just has to be in the configuration file? If it is something like
+			// this, should we also look for a "snaps" folder as well?
+			_, _, err = client.GetFile(org.Org, r.Name, r.DefaultBranch, "charms", false)
+			isMonorepo := err == nil
 
-			if is_monorepo {
-				repos := processFromMonoRepo(gtClient, org.Org, r)
-				for _, repo := range repos {
+			if isMonorepo {
+				subRepos := processFromMonoRepo(client, org.Org, repo)
+				for _, subRepo := range subRepos {
 					if len(repo.Details.Releases) > 0 {
-						orgRepos = append(orgRepos, repo.Details)
+						orgRepos = append(orgRepos, subRepo.Details)
 					}
 				}
 			} else {
-				repo := processRepo(gtClient, org.Org, r)
+				singleRepo := processRepo(client, org.Org, repo)
 				if len(repo.Details.Releases) > 0 {
-					orgRepos = append(orgRepos, repo.Details)
+					orgRepos = append(orgRepos, singleRepo.Details)
 				}
 			}
 		}
@@ -72,7 +77,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 			break
 		}
 		currentPage = resp.NextPage
-	}	
+	}
 
 	return orgRepos, nil
 }
@@ -102,7 +107,7 @@ func processRepo(gtClient *gitea.Client, org string, oRepo *gitea.Repository) *R
 
 // Process multiple 'repositories' from a monorepo.
 func processFromMonoRepo(gtClient *gitea.Client, org string, oRepo *gitea.Repository) []*Repository {
-	var subrepos []*Repository 
+	var subrepos []*Repository
 
 	// For now, this assumes that every 'repo' in the monorepo is in a folder
 	// called "charms". Maybe there should be a list to check in the config,
