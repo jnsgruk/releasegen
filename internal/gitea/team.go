@@ -94,7 +94,7 @@ func processRepo(gtClient *gitea.Client, org string, oRepo *gitea.Repository) *R
 
 	err := repo.Process()
 	if err != nil {
-		log.Printf("error populating repo '%s' from gitea: %s", repo.Details.Name, err.Error())
+		log.Printf("error populating repo '%s' from gitea: %v", repo.Details.Name, err)
 	}
 
 	return repo
