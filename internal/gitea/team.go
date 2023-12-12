@@ -107,7 +107,12 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	// Iterate over repositories, populating release info for each.
 	for _, meta := range repoList {
 		if len(meta.monorepoSources) > 0 {
-			collectedDetails := processFromMonoRepo(client, org.Org, meta.repo, meta.monorepoSources)
+			collectedDetails := processFromMonoRepo(
+				client,
+				org.Org,
+				meta.repo,
+				meta.monorepoSources,
+			)
 			for _, details := range collectedDetails {
 				if len(details.Releases) > 0 || len(details.Commits) > 0 {
 					orgRepos = append(orgRepos, details)
@@ -126,26 +131,25 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 // Process a single (non-mono) repo.
 func processRepo(client *gitea.Client, org string, orgRepo *gitea.Repository) repos.RepoDetails {
-	details := repos.RepoDetails{
-		Name: orgRepo.Name,
-		URL:  orgRepo.HTMLURL,
-	}
 	repo := &Repository{
-		Details:       details,
+		Details: repos.RepoDetails{
+			Name: orgRepo.Name,
+			URL:  orgRepo.HTMLURL,
+		},
 		org:           org,
 		client:        client,
 		defaultBranch: orgRepo.DefaultBranch,
 		folder:        "",
 	}
 
-	log.Printf("processing gitea repo: %s/%s\n", org, details.Name)
+	log.Printf("processing gitea repo: %s/%s\n", org, repo.Details.Name)
 
 	err := repo.Process()
 	if err != nil {
-		log.Printf("error populating repo '%s' from gitea: %s", details.Name, err.Error())
+		log.Printf("error populating repo '%s' from gitea: %s", repo.Details.Name, err.Error())
 	}
 
-	return details
+	return repo.Details
 }
 
 // Process multiple 'repositories' from a monorepo.
@@ -176,13 +180,12 @@ func processFromMonoRepo(
 				continue
 			}
 
-			details := repos.RepoDetails{
-				Name:     name,
-				URL:      entry.URL,
-				Monorepo: orgRepo.Name,
-			}
 			repo := &Repository{
-				Details:       details,
+				Details: repos.RepoDetails{
+					Name:     name,
+					URL:      entry.URL,
+					Monorepo: orgRepo.Name,
+				},
 				org:           org,
 				client:        client,
 				defaultBranch: orgRepo.DefaultBranch,
@@ -190,16 +193,16 @@ func processFromMonoRepo(
 			}
 
 			log.Printf("processing gitea sub-repo: %s %s/%s/%s\n",
-				org, orgRepo.Name, folder, details.Name)
+				org, orgRepo.Name, folder, repo.Details.Name)
 
 			err := repo.Process()
 			if err != nil {
 				log.Printf(
 					"error populating sub-repo '%s/%s' from gitea: %s",
-					details.Name, folder, err.Error())
+					repo.Details.Name, folder, err.Error())
 			}
 
-			collectedDetails = append(collectedDetails, details)
+			collectedDetails = append(collectedDetails, repo.Details)
 		}
 	}
 
