@@ -18,7 +18,7 @@ const maxPages = 100    // Give up after getting this many pages.
 func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	orgRepos := []repos.RepoDetails{}
 
-	client, err := org.GiteaClient()
+	client, err := gitea.NewClient(org.URL)
 	if err != nil {
 		return nil, fmt.Errorf("error creating gitea client: %w", err)
 	}
