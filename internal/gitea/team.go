@@ -10,8 +10,8 @@ import (
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
-const reposPerPage = 25  // Get this many repos from the API at once.
-const maxPages = 100 // Give up after getting this many pages.
+const reposPerPage = 25 // Get this many repos from the API at once.
+const maxPages = 100    // Give up after getting this many pages.
 
 // FetchOrgRepos creates a slice of RepoDetails types representing the repos
 // owned by the Gitea org.
@@ -24,9 +24,10 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	}
 
 	// Lists the gitea repositories in the org.
-	for currentPage := 1, pageCount := 0; pageCount < maxPages; pageCount += 1 {
+	currentPage := 1
+	for pageCount := 0; pageCount < maxPages; pageCount += 1 {
 		opts := gitea.ListReposOptions{
-			ListOptions: gitea.ListOptions{Page: currentPage, PageSize: reposPerPage}
+			ListOptions: gitea.ListOptions{Page: currentPage, PageSize: reposPerPage},
 		}
 		userRepos, resp, err := client.ListUserRepos(org.Org, opts)
 		if err != nil {
@@ -39,9 +40,9 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 		for _, repo := range userRepos {
 			// Check if the name of the repository is in the ignore list or
 			// private or archived, or already processed.
-			if slices.Contains(org.IgnoredRepos, repo.Name) || \
-					repo.Private || rep.Archived || \
-					repos.RepoInSlice(userRepos, r.Name) {
+			if slices.Contains(org.IgnoredRepos, repo.Name) ||
+				repo.Private || repo.Archived ||
+				repos.RepoInSlice(orgRepos, repo.Name) {
 				continue
 			}
 
@@ -51,20 +52,20 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 			// TODO: Figure out some better way of determining this. Maybe it
 			// just has to be in the configuration file? If it is something like
 			// this, should we also look for a "snaps" folder as well?
-			_, _, err = client.GetFile(org.Org, r.Name, r.DefaultBranch, "charms", false)
+			_, _, err = client.GetFile(org.Org, repo.Name, repo.DefaultBranch, "charms", false)
 			isMonorepo := err == nil
 
 			if isMonorepo {
-				subRepos := processFromMonoRepo(client, org.Org, repo)
-				for _, subRepo := range subRepos {
-					if len(repo.Details.Releases) > 0 {
-						orgRepos = append(orgRepos, subRepo.Details)
+				collectedDetails := processFromMonoRepo(client, org.Org, repo)
+				for _, details := range collectedDetails {
+					if len(details.Releases) > 0 {
+						orgRepos = append(orgRepos, details)
 					}
 				}
 			} else {
-				singleRepo := processRepo(client, org.Org, repo)
-				if len(repo.Details.Releases) > 0 {
-					orgRepos = append(orgRepos, singleRepo.Details)
+				details := processRepo(client, org.Org, repo)
+				if len(details.Releases) > 0 {
+					orgRepos = append(orgRepos, details)
 				}
 			}
 		}
@@ -83,72 +84,76 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 }
 
 // Process a single (non-mono) repo.
-func processRepo(gtClient *gitea.Client, org string, oRepo *gitea.Repository) *Repository {
+func processRepo(client *gitea.Client, org string, orgRepo *gitea.Repository) repos.RepoDetails {
+	details := repos.RepoDetails{
+		Name: orgRepo.Name,
+		URL:  orgRepo.HTMLURL,
+	}
 	repo := &Repository{
-		Details: repos.RepoDetails{
-			Name: oRepo.Name,
-			URL:  oRepo.HTMLURL,
-		},
+		Details:       details,
 		org:           org,
-		client:        gtClient,
-		defaultBranch: oRepo.DefaultBranch,
+		client:        client,
+		defaultBranch: orgRepo.DefaultBranch,
 		folder:        "",
 	}
 
-	log.Printf("processing gitea repo: %s/%s\n", repo.org, repo.Details.Name)
+	log.Printf("processing gitea repo: %s/%s\n", org, details.Name)
 
 	err := repo.Process()
 	if err != nil {
-		log.Printf("error populating repo '%s' from gitea: %v", repo.Details.Name, err)
+		log.Printf("error populating repo '%s' from gitea: %s", details.Name, err.Error())
 	}
 
-	return repo
+	return details
 }
 
 // Process multiple 'repositories' from a monorepo.
-func processFromMonoRepo(gtClient *gitea.Client, org string, oRepo *gitea.Repository) []*Repository {
-	var subrepos []*Repository
+func processFromMonoRepo(
+	client *gitea.Client,
+	org string,
+	orgRepo *gitea.Repository,
+) []repos.RepoDetails {
+	var collectedDetails []repos.RepoDetails
 
 	// For now, this assumes that every 'repo' in the monorepo is in a folder
 	// called "charms". Maybe there should be a list to check in the config,
 	// or maybe we should just hardcode some others, like "snaps", as well.
 	// There does not seem to be an API to get a sub-tree, so this gets the
 	// entire tree even though we only care about a small part of it.
-	tree, _, err := gtClient.GetTrees(org, oRepo.Name, oRepo.DefaultBranch, true)
+	tree, _, err := client.GetTrees(org, orgRepo.Name, orgRepo.DefaultBranch, true)
 	if err != nil {
-		log.Printf("error listing monorepo '%s': %s", oRepo.Name, err.Error())
-		return subrepos
+		log.Printf("error listing monorepo '%s': %s", orgRepo.Name, err.Error())
+		return collectedDetails
 	}
 
 	for _, entry := range tree.Entries {
-		path := entry.Path
-
-		parts := strings.Split(path, "/")
-		if len(parts) > 2 || parts[0] != "charms" {
+		parts := strings.Split(entry.Path, "/")
+		if len(parts) < 2 || parts[0] != "charms" {
 			continue
 		}
 		charmName := parts[1]
 
+		details := repos.RepoDetails{
+			Name: charmName,
+			URL:  entry.URL,
+		}
 		repo := &Repository{
-			Details: repos.RepoDetails{
-				Name: charmName,
-				URL:  entry.URL,
-			},
+			Details:       details,
 			org:           org,
-			client:        gtClient,
-			defaultBranch: oRepo.DefaultBranch,
+			client:        client,
+			defaultBranch: orgRepo.DefaultBranch,
 			folder:        entry.Path,
 		}
 
-		log.Printf("processing gitea repo: %s/%s\n", repo.org, repo.Details.Name)
+		log.Printf("processing gitea repo: %s/%s\n", org, details.Name)
 
 		err := repo.Process()
 		if err != nil {
-			log.Printf("error populating repo '%s' from gitea: %s", repo.Details.Name, err.Error())
+			log.Printf("error populating repo '%s' from gitea: %s", details.Name, err.Error())
 		}
 
-		subrepos = append(subrepos, repo)
+		collectedDetails = append(collectedDetails, details)
 	}
 
-	return subrepos
+	return collectedDetails
 }
