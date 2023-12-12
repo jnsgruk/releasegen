@@ -105,7 +105,11 @@ func (repo *Repository) processReleases() error {
 		IsPreRelease: gitea.OptionalBool(false),
 	}
 
-	releases, _, err := repo.client.ListReleases(repo.org, repo.Details.Name, opts)
+	source := repo.Details.Name
+	if repo.Details.Monorepo != "" {
+		source = repo.Details.Monorepo
+	}
+	releases, _, err := repo.client.ListReleases(repo.org, source, opts)
 	if err != nil {
 		return err
 	}
@@ -147,7 +151,11 @@ func (repo *Repository) processCommitsSinceRelease() error {
 		SHA:         latestRelease.Version,
 		Path:        "",
 	}
-	commits, _, err := repo.client.ListRepoCommits(repo.org, repo.Details.Name, opts)
+	source := repo.Details.Name
+	if repo.Details.Monorepo != "" {
+		source = repo.Details.Monorepo
+	}
+	commits, _, err := repo.client.ListRepoCommits(repo.org, source, opts)
 	if err != nil {
 		return err
 	}
@@ -173,7 +181,11 @@ func (repo *Repository) processCommits() error {
 		Path:        "",
 	}
 
-	commits, _, err := repo.client.ListRepoCommits(repo.org, repo.Details.Name, opts)
+	source := repo.Details.Name
+	if repo.Details.Monorepo != "" {
+		source = repo.Details.Monorepo
+	}
+	commits, _, err := repo.client.ListRepoCommits(repo.org, source, opts)
 	if err != nil {
 		return err
 	}

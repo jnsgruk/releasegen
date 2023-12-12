@@ -9,6 +9,7 @@ import (
 // RepoDetails represents the serialisable form of a Repository for the Report.
 type RepoDetails struct {
 	Name       string           `json:"name"`
+	Monorepo   string           `json:"monorepo"`
 	NewCommits int              `json:"newCommits"`
 	URL        string           `json:"url"`
 	Releases   []*Release       `json:"releases"`

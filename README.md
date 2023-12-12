@@ -105,7 +105,18 @@ teams:
         # (Required) The URL of the Gitea instance, e.g. `https://opendev.org/`
         url: <URL for the Gitea instance>
 
+        # (Optional) A list of repository names to include
+        # If empty, all public, non-archived repositories in the org will be
+        # included, unless listed in `ignores`.
+        includes:
+          # List of repo names
+          - <repo>:
+            monorepo-folders: ['<folder name>', <'folder name'>]
+          - <repo>
+            monorepo-folders: []
+
         # (Optional) A list of repository names to ignore
+        # Ignored if `includes` is not empty.
         ignores:
           # List of repo names
           - <repo>

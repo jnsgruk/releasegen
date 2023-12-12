@@ -13,17 +13,16 @@ import (
 const reposPerPage = 25 // Get this many repos from the API at once.
 const maxPages = 100    // Give up after getting this many pages.
 
-// FetchOrgRepos creates a slice of RepoDetails types representing the repos
-// owned by the Gitea org.
-func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
-	orgRepos := []repos.RepoDetails{}
+type repoMeta struct {
+	repo            *gitea.Repository
+	monorepoSources []string
+}
 
-	client, err := gitea.NewClient(org.URL)
-	if err != nil {
-		return nil, fmt.Errorf("error creating gitea client: %w", err)
-	}
+// publicOrgRepos finds repositories that are public, not archived, and belong
+// to the specified organisation.
+func publicOrgRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
+	var orgRepos []repoMeta
 
-	// Lists the gitea repositories in the org.
 	currentPage := 1
 	for pageCount := 0; pageCount < maxPages; pageCount += 1 {
 		opts := gitea.ListReposOptions{
@@ -38,36 +37,15 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 		// Iterate over repositories, populating release info for each.
 		for _, repo := range userRepos {
-			// Check if the name of the repository is in the ignore list or
-			// private or archived, or already processed.
-			if slices.Contains(org.IgnoredRepos, repo.Name) ||
-				repo.Private || repo.Archived ||
-				repos.RepoInSlice(orgRepos, repo.Name) {
+			// Check if the name of the repository is in the ignore list or is
+			// private or archived.
+			if slices.Contains(org.IgnoredRepos, repo.Name) || repo.Private || repo.Archived {
 				continue
 			}
-
-			// This might actually be a monorepo. We don't have a definitive way
-			// to know that, for now, assume it is if there is a "charms" folder
-			// at the top level.
-			// TODO: Figure out some better way of determining this. Maybe it
-			// just has to be in the configuration file? If it is something like
-			// this, should we also look for a "snaps" folder as well?
-			_, _, err = client.GetFile(org.Org, repo.Name, repo.DefaultBranch, "charms", false)
-			isMonorepo := err == nil
-
-			if isMonorepo {
-				collectedDetails := processFromMonoRepo(client, org.Org, repo)
-				for _, details := range collectedDetails {
-					if len(details.Releases) > 0 {
-						orgRepos = append(orgRepos, details)
-					}
-				}
-			} else {
-				details := processRepo(client, org.Org, repo)
-				if len(details.Releases) > 0 {
-					orgRepos = append(orgRepos, details)
-				}
+			meta := repoMeta{
+				repo: repo,
 			}
+			orgRepos = append(orgRepos, meta)
 		}
 
 		// opendev.org gives the actual last page right up until you're getting
@@ -78,6 +56,69 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 			break
 		}
 		currentPage = resp.NextPage
+	}
+
+	return orgRepos, nil
+}
+
+// specifiedRepos gets metadata about the repositories in the the list specified
+// in the `include` list in the configuration.
+func specifiedRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
+	var orgRepos []repoMeta
+
+	for name, conf := range org.IncludeRepos {
+		repo, _, err := client.GetRepo(org.Org, name)
+		if err != nil {
+			return nil, err
+		}
+
+		meta := repoMeta{
+			repo:            repo,
+			monorepoSources: conf.MonorepoSources,
+		}
+
+		orgRepos = append(orgRepos, meta)
+	}
+
+	return orgRepos, nil
+}
+
+// FetchOrgRepos creates a slice of RepoDetails types representing the repos
+// owned by the Gitea org.
+func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
+	var orgRepos []repos.RepoDetails
+
+	log.Printf("Connecting to gitea at %s\n", org.URL)
+	client, err := gitea.NewClient(org.URL)
+	if err != nil {
+		return nil, fmt.Errorf("error creating gitea client: %w", err)
+	}
+
+	var repoList []repoMeta
+	if len(org.IncludeRepos) > 0 {
+		repoList, err = specifiedRepos(org, client)
+	} else {
+		repoList, err = publicOrgRepos(org, client)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate over repositories, populating release info for each.
+	for _, meta := range repoList {
+		if len(meta.monorepoSources) > 0 {
+			collectedDetails := processFromMonoRepo(client, org.Org, meta.repo, meta.monorepoSources)
+			for _, details := range collectedDetails {
+				if len(details.Releases) > 0 || len(details.Commits) > 0 {
+					orgRepos = append(orgRepos, details)
+				}
+			}
+		} else {
+			details := processRepo(client, org.Org, meta.repo)
+			if len(details.Releases) > 0 || len(details.Commits) > 0 {
+				orgRepos = append(orgRepos, details)
+			}
+		}
 	}
 
 	return orgRepos, nil
@@ -112,47 +153,54 @@ func processFromMonoRepo(
 	client *gitea.Client,
 	org string,
 	orgRepo *gitea.Repository,
+	folders []string,
 ) []repos.RepoDetails {
 	var collectedDetails []repos.RepoDetails
 
-	// For now, this assumes that every 'repo' in the monorepo is in a folder
-	// called "charms". Maybe there should be a list to check in the config,
-	// or maybe we should just hardcode some others, like "snaps", as well.
-	// There does not seem to be an API to get a sub-tree, so this gets the
-	// entire tree even though we only care about a small part of it.
+	// It seems like the gitea client does not have the ability to get only the
+	// top level of the tree, so we have to get the entire tree for the repo.
 	tree, _, err := client.GetTrees(org, orgRepo.Name, orgRepo.DefaultBranch, true)
 	if err != nil {
 		log.Printf("error listing monorepo '%s': %s", orgRepo.Name, err.Error())
 		return collectedDetails
 	}
 
-	for _, entry := range tree.Entries {
-		parts := strings.Split(entry.Path, "/")
-		if len(parts) < 2 || parts[0] != "charms" {
-			continue
-		}
-		charmName := parts[1]
+	for _, folder := range folders {
+		for _, entry := range tree.Entries {
+			parts := strings.Split(entry.Path, "/")
+			if len(parts) < 2 || parts[0] != folder {
+				continue
+			}
+			name := parts[1]
+			if repos.RepoInSlice(collectedDetails, name) {
+				continue
+			}
 
-		details := repos.RepoDetails{
-			Name: charmName,
-			URL:  entry.URL,
-		}
-		repo := &Repository{
-			Details:       details,
-			org:           org,
-			client:        client,
-			defaultBranch: orgRepo.DefaultBranch,
-			folder:        entry.Path,
-		}
+			details := repos.RepoDetails{
+				Name:     name,
+				URL:      entry.URL,
+				Monorepo: orgRepo.Name,
+			}
+			repo := &Repository{
+				Details:       details,
+				org:           org,
+				client:        client,
+				defaultBranch: orgRepo.DefaultBranch,
+				folder:        entry.Path,
+			}
 
-		log.Printf("processing gitea repo: %s/%s\n", org, details.Name)
+			log.Printf("processing gitea sub-repo: %s %s/%s/%s\n",
+				org, orgRepo.Name, folder, details.Name)
 
-		err := repo.Process()
-		if err != nil {
-			log.Printf("error populating repo '%s' from gitea: %s", details.Name, err.Error())
+			err := repo.Process()
+			if err != nil {
+				log.Printf(
+					"error populating sub-repo '%s/%s' from gitea: %s",
+					details.Name, folder, err.Error())
+			}
+
+			collectedDetails = append(collectedDetails, details)
 		}
-
-		collectedDetails = append(collectedDetails, details)
 	}
 
 	return collectedDetails
