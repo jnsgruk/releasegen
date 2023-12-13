@@ -59,12 +59,12 @@ func (t *Team) Process() error {
 	for _, org := range t.config.GiteaConfig {
 		log.Printf("processing gitea org: %s\n", org.Org)
 
-		odRepos, err := gitea.FetchOrgRepos(org)
+		orgRepos, err := gitea.FetchOrgRepos(org)
 		if err != nil {
 			return fmt.Errorf("error populating gitea repos: %w", err)
 		}
 
-		t.Details.Repos = append(t.Details.Repos, odRepos...)
+		t.Details.Repos = append(t.Details.Repos, orgRepos...)
 	}
 
 	// Sort the repos by the last released.
