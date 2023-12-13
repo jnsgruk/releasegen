@@ -116,7 +116,7 @@ teams:
             monorepo-folders: []
 
         # (Optional) A list of repository names to ignore
-        # Ignored if `includes` is not empty.
+        # Ignored if `includes` is present.
         ignores:
           # List of repo names
           - <repo>
