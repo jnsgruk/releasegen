@@ -15,7 +15,7 @@ const maxPages = 100    // Give up after getting this many pages.
 
 type repoMeta struct {
 	repo            *gitea.Repository
-	monorepoSources []string
+	monorepoFolders []string
 }
 
 // publicOrgRepos finds repositories that are public, not archived, and belong
@@ -39,7 +39,7 @@ func publicOrgRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 		for _, repo := range userRepos {
 			// Check if the name of the repository is in the ignore list or is
 			// private or archived.
-			if slices.Contains(org.IgnoredRepos, repo.Name) || repo.Private || repo.Archived {
+			if slices.Contains(org.Ignores, repo.Name) || repo.Private || repo.Archived {
 				continue
 			}
 			meta := repoMeta{
@@ -66,7 +66,7 @@ func publicOrgRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 func specifiedRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 	var orgRepos []repoMeta
 
-	for name, conf := range org.IncludeRepos {
+	for name, conf := range org.Includes {
 		repo, _, err := client.GetRepo(org.Org, name)
 		if err != nil {
 			return nil, err
@@ -74,7 +74,7 @@ func specifiedRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 
 		meta := repoMeta{
 			repo:            repo,
-			monorepoSources: conf.MonorepoSources,
+			monorepoFolders: conf.MonorepoFolders,
 		}
 
 		orgRepos = append(orgRepos, meta)
@@ -95,7 +95,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 	}
 
 	var repoList []repoMeta
-	if len(org.IncludeRepos) > 0 {
+	if len(org.Includes) > 0 {
 		repoList, err = specifiedRepos(org, client)
 	} else {
 		repoList, err = publicOrgRepos(org, client)
@@ -106,12 +106,12 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 	// Iterate over repositories, populating release info for each.
 	for _, meta := range repoList {
-		if len(meta.monorepoSources) > 0 {
+		if len(meta.monorepoFolders) > 0 {
 			collectedDetails := processFromMonoRepo(
 				client,
 				org.Org,
 				meta.repo,
-				meta.monorepoSources,
+				meta.monorepoFolders,
 			)
 			for _, details := range collectedDetails {
 				if len(details.Releases) > 0 || len(details.Commits) > 0 {
