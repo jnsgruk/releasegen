@@ -1,6 +1,7 @@
 package gitea
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"slices"
@@ -23,8 +24,8 @@ type repoMeta struct {
 func publicOrgRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 	var orgRepos []repoMeta
 
-	currentPage := 1
-	for pageCount := 0; pageCount < maxPages; pageCount += 1 {
+	pageCount := 0
+	for currentPage := 1; pageCount < maxPages; pageCount++ {
 		opts := gitea.ListReposOptions{
 			ListOptions: gitea.ListOptions{Page: currentPage, PageSize: reposPerPage},
 		}
@@ -56,6 +57,9 @@ func publicOrgRepos(org OrgConfig, client *gitea.Client) ([]repoMeta, error) {
 			break
 		}
 		currentPage = resp.NextPage
+	}
+	if pageCount >= maxPages {
+		return nil, errors.New("Could not retrieve all the pages")
 	}
 
 	return orgRepos, nil

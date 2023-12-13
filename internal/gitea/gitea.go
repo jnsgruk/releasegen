@@ -1,3 +1,4 @@
+// Package gitea implements support for Gitea repositories using the Gitea API client.
 package gitea
 
 // OrgConfig contains fields used in releasegen's config.yaml file to configure
