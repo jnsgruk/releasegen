@@ -43,5 +43,5 @@ jobs:
 
       - name: Test and build
         run: |
-          go test -race ./... -check.vv
+          go test -race ./...
           go build ./cmd/releasegen
