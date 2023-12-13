@@ -1,4 +1,7 @@
-exclude: lib
+# Configuration file for the https://pre-commit.com/ pre-commit hook framework.
+# If pre-commit is installed (run `pre-commit` install in your local clone),
+# then the checks listed below will be run on each commit, aborting the commit
+# if any fail. The checks only run against files staged in the commit.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
