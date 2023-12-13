@@ -149,7 +149,6 @@ func (repo *Repository) processCommitsSinceRelease() error {
 	opts := gitea.ListCommitOptions{
 		ListOptions: gitea.ListOptions{PageSize: releasesPerRepo},
 		SHA:         latestRelease.Version,
-		Path:        "",
 	}
 	source := repo.Details.Name
 	if repo.Details.Monorepo != "" {
@@ -178,7 +177,6 @@ func (repo *Repository) processCommits() error {
 	opts := gitea.ListCommitOptions{
 		ListOptions: gitea.ListOptions{PageSize: releasesPerRepo},
 		SHA:         repo.defaultBranch,
-		Path:        "",
 	}
 
 	source := repo.Details.Name
