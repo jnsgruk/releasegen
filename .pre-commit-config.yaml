@@ -1,0 +1,24 @@
+# Configuration file for the https://pre-commit.com/ pre-commit hook framework.
+# If pre-commit is installed (run `pre-commit` install in your local clone),
+# then the checks listed below will be run on each commit, aborting the commit
+# if any fail. The checks only run against files staged in the commit.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: check-json
+    -   id: check-merge-conflict
+    -   id: requirements-txt-fixer
+    -   id: check-shebang-scripts-are-executable
+    -   id: check-symlinks
+  - repo: https://github.com/Bahjat/pre-commit-golang
+    rev: v1.0.3
+    hooks:
+      - id: go-fmt-import
+      - id: go-vet
+      - id: go-lint
+      - id: go-unit-tests

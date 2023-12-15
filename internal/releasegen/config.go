@@ -1,6 +1,7 @@
 package releasegen
 
 import (
+	"github.com/jnsgruk/releasegen/internal/gitea"
 	"github.com/jnsgruk/releasegen/internal/github"
 	"github.com/jnsgruk/releasegen/internal/launchpad"
 )
@@ -21,4 +22,5 @@ type TeamConfig struct {
 	Name            string             `mapstructure:"name"`
 	GithubConfig    []github.OrgConfig `mapstructure:"github"`
 	LaunchpadConfig launchpad.Config   `mapstructure:"launchpad"`
+	GiteaConfig     []gitea.OrgConfig  `mapstructure:"gitea"`
 }

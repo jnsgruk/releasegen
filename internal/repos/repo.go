@@ -9,6 +9,7 @@ import (
 // RepoDetails represents the serialisable form of a Repository for the Report.
 type RepoDetails struct {
 	Name       string           `json:"name"`
+	Monorepo   string           `json:"monorepo"`
 	NewCommits int              `json:"newCommits"`
 	URL        string           `json:"url"`
 	Releases   []*Release       `json:"releases"`
@@ -23,7 +24,7 @@ type Repository interface {
 	Process() error
 }
 
-// Release refers to either Github Release, or a Launchpad Tag.
+// Release refers to either Github Release, a Launchpad Tag, or a Gitea Release.
 type Release struct {
 	ID         int64  `json:"id"`
 	Version    string `json:"version"`
