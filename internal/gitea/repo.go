@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/gomarkdown/markdown"
 	"github.com/jnsgruk/releasegen/internal/repos"
 )
 
@@ -120,7 +119,7 @@ func (repo *Repository) processReleases() error {
 			Version:   rel.TagName,
 			Timestamp: rel.PublishedAt.Unix(),
 			Title:     rel.Title,
-			Body:      renderReleaseBody(rel.Note, repo),
+			Body:      rel.Note,
 			URL:       rel.URL,
 			CompareURL: fmt.Sprintf(
 				"%s/compare/%s...%s", repo.Details.URL, rel.TagName, repo.defaultBranch),
@@ -199,18 +198,10 @@ func (repo *Repository) processCommits() error {
 			Sha:       commit.CommitMeta.SHA,
 			Author:    name,
 			Timestamp: commit.CommitMeta.Created.Unix(),
-			Message:   renderReleaseBody(commit.RepoCommit.Message, repo),
+			Message:   commit.RepoCommit.Message,
 			URL:       commit.HTMLURL,
 		})
 	}
 
 	return nil
-}
-
-// renderReleaseBody transforms a Markdown string from a Gitea Release into HTML.
-func renderReleaseBody(body string, repo *Repository) string {
-	// Render the Markdown to HTML.
-	normalised := markdown.NormalizeNewlines([]byte(body))
-
-	return string(markdown.ToHTML(normalised, nil, nil))
 }
