@@ -40,5 +40,6 @@ func FetchCharmDetails(ctx context.Context, name string) (*ArtifactDetails, erro
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision.revision").Array()
 
-	return &ArtifactDetails{storeURL, tracks, channels, releaseTimes, revisions}, nil
+	// TODO: Implement base parsing for charms (like snaps).
+	return &ArtifactDetails{storeURL, tracks, channels, releaseTimes, revisions, []gjson.Result{}}, nil
 }

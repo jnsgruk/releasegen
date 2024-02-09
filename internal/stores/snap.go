@@ -13,7 +13,7 @@ import (
 // FetchSnapDetails fetches the Json representing charm information by querying the Snapcraft API.
 func FetchSnapDetails(ctx context.Context, name string) (*ArtifactDetails, error) {
 	// Query the Snapcraft API to obtain the charm information.
-	apiURL := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url", name)
+	apiURL := fmt.Sprintf("http://api.snapcraft.io/v2/snaps/info/%s?fields=channel-map,revision,store-url,base", name)
 
 	client := &http.Client{}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
@@ -44,6 +44,7 @@ func FetchSnapDetails(ctx context.Context, name string) (*ArtifactDetails, error
 	channels := gjson.Get(jsonBody, "channel-map.#.channel.risk").Array()
 	releaseTimes := gjson.Get(jsonBody, "channel-map.#.channel.released-at").Array()
 	revisions := gjson.Get(jsonBody, "channel-map.#.revision").Array()
+	bases := gjson.Get(jsonBody, "channel-map.#.base").Array()
 
-	return &ArtifactDetails{storeURL, tracks, channels, releaseTimes, revisions}, nil
+	return &ArtifactDetails{storeURL, tracks, channels, releaseTimes, revisions, bases}, nil
 }

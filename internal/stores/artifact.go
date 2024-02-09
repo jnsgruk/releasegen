@@ -28,12 +28,14 @@ func NewArtifact(name string, details *ArtifactDetails) *Artifact {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", details.ReleaseTimes[index].String())
 		track := details.Tracks[index].String()
 		channel := details.Channels[index].String()
+		base := details.Bases[index].String()
 
 		artifact.Releases = append(artifact.Releases, &Release{
 			Track:     track,
 			Channel:   channel,
 			Revision:  details.Revisions[index].Int(),
 			Timestamp: parsedTime.Unix(),
+			Base:      base,
 		})
 
 		if !slices.Contains(artifact.Tracks, track) {
@@ -54,6 +56,7 @@ type Release struct {
 	Channel   string `json:"channel"`
 	Revision  int64  `json:"revision"`
 	Timestamp int64  `json:"timestamp"`
+	Base      string `json:"base"`
 }
 
 // ArtifactDetails is used for storing the raw info fetched about an artifact from the store.
@@ -63,4 +66,5 @@ type ArtifactDetails struct {
 	Channels     []gjson.Result
 	ReleaseTimes []gjson.Result
 	Revisions    []gjson.Result
+	Bases        []gjson.Result
 }
