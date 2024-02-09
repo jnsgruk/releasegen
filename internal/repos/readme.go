@@ -45,6 +45,7 @@ func (r *Readme) LinkedSnap(ctx context.Context) *stores.Artifact {
 		snapInfo, err := stores.FetchSnapDetails(ctx, snapName)
 		if err != nil {
 			log.Printf("failed to fetch snap package information for snap: %s", snapName)
+			return nil
 		}
 
 		return stores.NewArtifact(snapName, snapInfo)
@@ -61,6 +62,7 @@ func (r *Readme) LinkedCharm(ctx context.Context) *stores.Artifact {
 		charmInfo, err := stores.FetchCharmDetails(ctx, charmName)
 		if err != nil {
 			log.Printf("failed to fetch charm information for charm: %s", charmName)
+			return nil
 		}
 
 		return stores.NewArtifact(charmName, charmInfo)
