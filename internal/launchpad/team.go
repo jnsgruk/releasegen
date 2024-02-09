@@ -20,9 +20,9 @@ func FetchProjectGroupRepos(projectGroup string, config Config) ([]repos.RepoDet
 		return nil, err
 	}
 
-	// Iterate over repos, add only those that have releases to the Team's list of repos
+	// Iterate over repos, add only those that have tags to the Team's list of repos
 	for _, r := range lpRepos {
-		if len(r.Details.Releases) > 0 {
+		if len(r.Details.Tags) > 0 {
 			pgRepos = append(pgRepos, r.Details)
 		}
 	}

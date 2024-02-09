@@ -19,8 +19,8 @@ type Repository struct {
 func (r *Repository) Process(ctx context.Context) error {
 	r.project = &Project{Name: r.Details.Name}
 
-	// Iterate over the releases in the Launchpad repo and add them to our repository's details.
-	err := r.processReleases(ctx)
+	// Iterate over the tags in the Launchpad repo and add them to our repository's details.
+	err := r.processTags(ctx)
 	if err != nil {
 		return err
 	}
@@ -40,9 +40,9 @@ func (r *Repository) Process(ctx context.Context) error {
 	return err
 }
 
-// processReleases fetches a repository's tags from Launchpad, then populates r.Details.Releases
+// processTags fetches a repository's tags from Launchpad, then populates r.Details.Tags
 // with the information in the relevant format for releasegen.
-func (r *Repository) processReleases(ctx context.Context) error {
+func (r *Repository) processTags(ctx context.Context) error {
 	tags, err := r.project.Tags(ctx)
 	if err != nil {
 		return err
@@ -59,12 +59,11 @@ func (r *Repository) processReleases(ctx context.Context) error {
 
 	// Iterate over the tags in the Launchpad repo.
 	for _, t := range tags {
-		r.Details.Releases = append(r.Details.Releases, &repos.Release{
-			ID:         t.Timestamp.Unix(),
-			Version:    t.Name,
-			Timestamp:  t.Timestamp.Unix(),
-			Title:      t.Name,
+		r.Details.Tags = append(r.Details.Tags, &repos.Tag{
+			Name:       t.Name,
+			Sha:        t.Commit,
 			Body:       "",
+			Timestamp:  t.Timestamp.Unix(),
 			URL:        fmt.Sprintf("%s/tag/?h=%s", r.Details.URL, t.Name),
 			CompareURL: fmt.Sprintf("%s/diff/?id=%s&id2=%s", r.Details.URL, t.Commit, r.defaultBranch),
 		})
