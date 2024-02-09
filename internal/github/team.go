@@ -27,7 +27,7 @@ func FetchOrgRepos(org OrgConfig) ([]repos.RepoDetails, error) {
 
 		// Iterate over ghRepos and add the unarchived ones that have at least one commit.
 		for _, r := range teamRepos {
-			if len(r.Details.Releases) > 0 || len(r.Details.Commits) > 0 {
+			if (len(r.Details.Releases) + len(r.Details.Tags) + len(r.Details.Commits)) > 0 {
 				orgRepos = append(orgRepos, r.Details)
 			}
 		}

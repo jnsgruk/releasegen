@@ -12,6 +12,7 @@ type RepoDetails struct {
 	NewCommits int              `json:"newCommits"`
 	URL        string           `json:"url"`
 	Releases   []*Release       `json:"releases"`
+	Tags       []*Tag           `json:"tags"`
 	Commits    []*Commit        `json:"commits"`
 	CiActions  []string         `json:"ciActions"`
 	Charm      *stores.Artifact `json:"charm"`
@@ -23,13 +24,23 @@ type Repository interface {
 	Process() error
 }
 
-// Release refers to either Github Release, or a Launchpad Tag.
+// Release refers to either Github Release.
 type Release struct {
 	ID         int64  `json:"id"`
 	Version    string `json:"version"`
 	Timestamp  int64  `json:"timestamp"`
 	Title      string `json:"title"`
 	Body       string `json:"body"`
+	URL        string `json:"url"`
+	CompareURL string `json:"compareUrl"`
+}
+
+// Tag refers to a tag.
+type Tag struct {
+	Name       string `json:"name"`
+	Sha        string `json:"sha"`
+	Body       string `json:"body"`
+	Timestamp  int64  `json:"timestamp"`
 	URL        string `json:"url"`
 	CompareURL string `json:"compareUrl"`
 }

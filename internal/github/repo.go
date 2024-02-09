@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 
@@ -47,13 +48,17 @@ func (r *Repository) Process(ctx context.Context) error {
 		return err
 	}
 
-	if len(r.Details.Releases) > 0 {
-		// Calculate the number of commits since the latest release.
-		err := r.processCommitsSinceRelease(ctx)
+	// If there are no releases, check if there are tags.
+	if len(r.Details.Releases) == 0 {
+		// Iterate over the tags in the Github repo and add them to our repository's details.
+		err := r.processTags(ctx)
 		if err != nil {
 			return err
 		}
-	} else {
+	}
+
+	// If there are no releases, and no tags, then fall back to commits.
+	if (len(r.Details.Releases) + len(r.Details.Tags)) == 0 {
 		// If there are no releases, get the latest commit instead.
 		err := r.processCommits(ctx)
 		if err != nil {
@@ -124,16 +129,62 @@ func (r *Repository) processReleases(ctx context.Context) error {
 		})
 	}
 
+	if len(r.Details.Releases) > 0 {
+		// Calculate the number of commits since the latest release.
+		err := r.processCommitsSince(ctx, r.Details.Releases[0].Version)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-// processCommitsSinceRelease calculates the number of commits that have occurred on the default
+// processTags fetches a repository's tags from Github, then populates r.Details.Tags
+// with the information in the relevant format for releasegen.
+func (r *Repository) processTags(ctx context.Context) error {
+	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
+
+	tags, _, err := r.client.Repositories.ListTags(ctx, r.org, r.Details.Name, opts)
+	if err != nil {
+		return errors.New("error listing tags for repo")
+	}
+
+	for _, tag := range tags {
+		// Without fetching the commit separately, the timestamp/author information isn't populated
+		commit, _, err := r.client.Repositories.GetCommit(ctx, r.org, r.Details.Name, tag.GetCommit().GetSHA(), nil)
+		if err != nil {
+			return errors.New("error getting commit info for tag")
+		}
+
+		r.Details.Tags = append(r.Details.Tags, &repos.Tag{
+			Name:       tag.GetName(),
+			Sha:        tag.GetCommit().GetSHA(),
+			Body:       renderReleaseBody(commit.GetCommit().GetMessage(), r),
+			Timestamp:  commit.GetCommit().GetAuthor().GetDate().Time.Unix(),
+			URL:        fmt.Sprintf("%s/releases/tag/%s", r.Details.URL, url.PathEscape(tag.GetName())),
+			CompareURL: fmt.Sprintf("%s/compare/%s...%s", r.Details.URL, r.defaultBranch, url.PathEscape(tag.GetName())),
+		})
+	}
+
+	if len(r.Details.Tags) > 0 {
+		// Calculate the number of commits since the latest tag.
+		err := r.processCommitsSince(ctx, r.Details.Tags[0].Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// processCommitsSince calculates the number of commits that have occurred on the default
 // branch of the repository since the last release, and populates the information in r.Details.
-func (r *Repository) processCommitsSinceRelease(ctx context.Context) error {
+func (r *Repository) processCommitsSince(ctx context.Context, comparator string) error {
 	opts := &gh.ListOptions{PerPage: githubReleasesPerRepo}
 	// Add the commit delta between last release and default branch.
 	comparison, _, err := r.client.Repositories.CompareCommits(
-		ctx, r.org, r.Details.Name, r.Details.Releases[0].Version, r.defaultBranch, opts,
+		ctx, r.org, r.Details.Name, comparator, r.defaultBranch, opts,
 	)
 	if err != nil {
 		return errors.New("error getting commit comparison for release")
