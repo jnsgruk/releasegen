@@ -3,7 +3,7 @@ module github.com/jnsgruk/releasegen
 go 1.21
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/gomarkdown/markdown v0.0.0-20230716120725-531d2d74bc12
 	github.com/google/go-github/v54 v54.0.0
 	github.com/spf13/cobra v1.8.0
