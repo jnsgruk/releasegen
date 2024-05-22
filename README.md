@@ -9,7 +9,7 @@ I lead some teams at Canonical, and I wanted a way to track the Github Releases 
 over time, and provide a single place for different departments, partners and customers to see new
 releases of my teams' work.
 
-The result of this is: https://jnsgruk.github.io/releases.
+The result of this is: https://releases.juju.is.
 
 There is some built in knowledge of both the [Snap store](https://snapcraft.io) and the
 [Charmhub](https://charmhub.io). If the README of a project contains a Github badge for one of
