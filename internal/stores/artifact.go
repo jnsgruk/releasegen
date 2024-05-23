@@ -28,7 +28,11 @@ func NewArtifact(name string, details *ArtifactDetails) *Artifact {
 		parsedTime, _ := time.Parse("2006-01-02T15:04:05.99-07:00", details.ReleaseTimes[index].String())
 		track := details.Tracks[index].String()
 		channel := details.Channels[index].String()
-		base := details.Bases[index].String()
+
+		base := ""
+		if len(details.Bases) > 0 {
+			base = details.Bases[index].String()
+		}
 
 		artifact.Releases = append(artifact.Releases, &Release{
 			Track:     track,
