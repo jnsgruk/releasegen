@@ -2,7 +2,6 @@ package launchpad
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,13 +11,6 @@ import (
 )
 
 const launchpadTimeout = 5 * time.Second
-
-var errEnumerateProjectGroup = errors.New("error enumerating project group")
-
-// enumerateProjectGroupError builds a wrapped error that might occur when enumerating a group.
-func enumerateProjectGroupError(err error) error {
-	return fmt.Errorf("%w: %s", errEnumerateProjectGroup, err.Error())
-}
 
 // Config contains fields used in releasegen's config.yaml file to configure
 // its behaviour when generating reports about Launchpad repositories.
@@ -35,18 +27,18 @@ func enumerateProjectGroup(ctx context.Context, projectGroup string) ([]string, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, enumerateProjectGroupError(err)
+		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
 	}
 
 	res, getErr := client.Do(req)
 	if getErr != nil {
-		return nil, enumerateProjectGroupError(err)
+		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
 	}
 	defer res.Body.Close()
 
 	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
-		return nil, enumerateProjectGroupError(err)
+		return nil, fmt.Errorf("error enumerating project group '%s': %w", projectGroup, err)
 	}
 
 	// Parse the result as JSON, grab the "entries" key.
