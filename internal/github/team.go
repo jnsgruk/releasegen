@@ -42,15 +42,24 @@ func getTeamRepos(org OrgConfig, team string, orgRepos *[]repos.RepoDetails) ([]
 	ghRepos := []*Repository{}
 	ctx := context.Background()
 	opts := &gh.ListOptions{PerPage: githubPerPage}
+	allTeamRepos:= []*gh.Repository{}
 
 	// Lists the Github repositories that the 'ghTeam' has access to.
-	teamRepos, _, err := org.GithubClient().Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing repositories for github org: %s", org.Org)
+	for {
+		teamRepos, resp, err := org.GithubClient().Teams.ListTeamReposBySlug(ctx, org.Org, team, opts)
+		if err != nil {
+			return nil, fmt.Errorf("error listing repositories for github org: %s", org.Org)
+		}
+		allTeamRepos = append(allTeamRepos, teamRepos...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
+	log.Printf("found %d repositories for github team: %s", len(allTeamRepos), team)
 
 	// Iterate over repositories, populating release info for each.
-	for _, tRepo := range teamRepos {
+	for _, tRepo := range allTeamRepos {
 		r := tRepo
 		// Check if the name of the repository is in the ignore list or private, or already processed.
 		if slices.Contains(org.IgnoredRepos, *r.Name) || *r.Private || repos.RepoInSlice(*orgRepos, *r.Name) {
