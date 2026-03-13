@@ -15,7 +15,7 @@ builds:
     ldflags:
       - -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .CommitDate }}
 archives:
-    # e.g. releasegen_0.1.0_linux_aarch64.tar.gz, releasegen_0.1.0_linux_x86_64.tar.gz
+  # e.g. releasegen_0.1.0_linux_aarch64.tar.gz, releasegen_0.1.0_linux_x86_64.tar.gz
   - name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -24,13 +24,13 @@ archives:
       {{- else if eq .Arch "arm64" }}aarch64
       {{- else }}{{ .Arch }}{{ end }}
     files:
-      - 'LICENSE*'
-      - 'README*'
+      - "LICENSE*"
+      - "README*"
 
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 release:
   prerelease: auto
   # Defaults to empty.
@@ -44,3 +44,4 @@ changelog:
   filters:
     exclude:
       - "^test:"
+version: 2
